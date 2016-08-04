@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-import os
-username = os.environ.get('USER')
-workdir = '/Users/' + username + '/work/DisplacedVertices/Run2/'
-rootcoredir = '/Users/' + username + '/ATLAS/sw/projects/DV_xAODAnalysis/'
+import BasicConfig
+#BasicConfig = BasicConfig.BasicConfig()
+from datetime import date
 
 try:
     import ROOT
@@ -11,17 +10,17 @@ try:
 except ImportError:
     # on my laptop
     import sys
+
     sys.path.append('/usr/local/root/latest/lib')
     sys.path.append(workdir + 'Macro/')
     import ROOT
     import AtlasStyle
 
-from datetime import date
-
 class MaterialVolume:
     def __init__(self):
         self.module_name = 'MV'
-        self.tf = ROOT.TFile(rootcoredir + "DVAnalyses/data/materialMap3D_Run2_v2.root", "open")
+        self.tf = ROOT.TFile(BasicConfig.rootcoredir
+                             + "DVAnalyses/data/materialMap3D_Run2_v2.root", "open")
         self.matMap = ROOT.TH3D()
         self.tf.GetObject("map", self.matMap)
         self.nr = self.matMap.GetNbinsX()
@@ -85,6 +84,7 @@ class MaterialVolume:
         print("material ratio: {}".format(materialVolume/(nonMaterialVolume+materialVolume)*100.))
 
     def calculateMaterialVolume(self):
+        print '*** start MaterialVolume.calculateMaterialVolume'
         materialVolume = 0.
         nonMaterialVolume = 0.
         for ir in range(1, self.nr+1):
@@ -104,6 +104,7 @@ class MaterialVolume:
         self.printProgress(materialVolume,nonMaterialVolume)
 
     def showMaterialRegions(self, canvas):
+        print '*** start MaterialVolume.showMaterialRegions'
         canvas.cd()
         matRegion = ROOT.TH2F("matRegion", ";Z [mm];R [mm]",
                          self.nz, -300, 300, self.nr, 0, 300)
@@ -120,10 +121,11 @@ class MaterialVolume:
         matRegion.SetMinimum(-0.5)
         matRegion.SetMaximum(11.5)
         matRegion.Draw("colz")
-        canvas.SaveAs(workdir + 'plots/' + self.module_name
+        canvas.SaveAs(BasicConfig.workdir + 'plots/' + self.module_name
                       + "_materialRegion_{}.png".format(date.today()))
 
     def estimateHadronicInteractions(self, tfile, ntrk=3):
+        print '*** start MaterialVolume.estimateHadronicInteractions'
         densityAir = 1.3e-3 # [g/cm3]
         densitySilicon = 2.3
         matVolRatio = 0.42
@@ -160,14 +162,14 @@ if __name__ == "__main__":
     if doCalcMV:
         matVol.calculateMaterialVolume()
     if doShowMR:
-        SetAtlasStyle()
+        AtlasStyle.SetAtlasStyle()
         canvas = ROOT.TCanvas("c", "c", 1000, 600)
         matVol.showMaterialRegions(canvas)
     if doEstiHI:
         filename = 'all.root' if year == 2015 else 'all_2016.root'
-        tf = ROOT.TFile(workdir + filename, "open")
+        tf = ROOT.TFile(BasicConfig.workdir + filename, "open")
         if not tf.IsOpen():
             import sys
-            print(workdir + filename + ' failed to be opened!')
+            print(BasicConfig.workdir + filename + ' failed to be opened!')
             sys.exit()
         matVol.estimateHadronicInteractions(tf)
