@@ -9,10 +9,9 @@ try:
     import AtlasStyle
 except ImportError:
     # on my laptop
-    import sys
 
     sys.path.append('/usr/local/root/latest/lib')
-    sys.path.append(workdir + 'Macro/')
+    sys.path.append(BasicConfig.workdir + 'Macro/')
     import ROOT
     import AtlasStyle
 
@@ -35,6 +34,9 @@ class MaterialVolume:
         self.dr = float(self.max_r - self.min_r) / self.nr
         self.dp = float(self.max_p - self.min_p) / self.np
         self.dz = float(self.max_z - self.min_z) / self.nz
+        self.region_list = [22., 25., 29., 38., 46.,
+                            73., 84., 111., 120., 145.,
+                            180., 300.]
 
     def passMaterialVeto(self, r, phi, z):
         if self.matMap.GetBinContent(self.matMap.FindBin(r, phi, z)) == 0:
@@ -43,29 +45,29 @@ class MaterialVolume:
             return False
 
     def getRegion(self, r, nonMaterial):
-        if r < 22. and nonMaterial:
+        if r < self.region_list[0] and nonMaterial:
             return 0
-        elif r < 25. and not nonMaterial:
+        elif r < self.region_list[1] and not nonMaterial:
             return 1
-        elif r < 29. and nonMaterial:
+        elif r < self.region_list[2] and nonMaterial:
             return 2
-        elif r < 38. and not nonMaterial:
+        elif r < self.region_list[3] and not nonMaterial:
             return 3
-        elif r < 46. and nonMaterial:
+        elif r < self.region_list[4] and nonMaterial:
             return 4
-        elif r < 73. and not nonMaterial:
+        elif r < self.region_list[5] and not nonMaterial:
             return 5
-        elif r < 84. and nonMaterial:
+        elif r < self.region_list[6] and nonMaterial:
             return 6
-        elif r < 111. and not nonMaterial:
+        elif r < self.region_list[7] and not nonMaterial:
             return 7
-        elif r < 120. and nonMaterial:
+        elif r < self.region_list[8] and nonMaterial:
             return 8
-        elif r < 145. and not nonMaterial:
+        elif r < self.region_list[9] and not nonMaterial:
             return 9
-        elif r < 180. and nonMaterial:
+        elif r < self.region_list[10] and nonMaterial:
             return 10
-        elif r < 300. and nonMaterial:
+        elif r < self.region_list[11] and nonMaterial:
             return 11
         else:
             return -1
