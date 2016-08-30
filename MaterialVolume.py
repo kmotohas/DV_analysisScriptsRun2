@@ -123,7 +123,7 @@ class MaterialVolume:
         matRegion.SetMinimum(-0.5)
         matRegion.SetMaximum(11.5)
         matRegion.Draw("colz")
-        canvas.SaveAs(BasicConfig.workdir + 'plots/' + self.module_name
+        canvas.SaveAs(BasicConfig.plotdir + self.module_name
                       + "_materialRegion_{}.png".format(date.today()))
 
     def estimateHadronicInteractions(self, tfile, ntrk=3):
