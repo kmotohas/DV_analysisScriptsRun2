@@ -25,6 +25,19 @@ def open_tfile(filepath):
     return tfile
 
 
+def save_as(canvas, file_name):
+    canvas.SaveAs(file_name + '.pdf')
+    canvas.SaveAs(file_name + '.png')
+
+
+def division_error_propagation(numerator, denominator):
+    error = ROOT.TMath.Sqrt(
+        ROOT.TMath.Power(1 / denominator * ROOT.TMath.Sqrt(numerator), 2)
+        + ROOT.TMath.Power(numerator / denominator / denominator
+                           * ROOT.TMath.Sqrt(denominator), 2))
+    return numerator/denominator, error
+
+
 def configure_pave_text(pave_text, align=11, font=82):
     pave_text.SetTextAlign(int(align))  # 11: Left adjusted and bottom adjusted
     pave_text.SetTextFont(int(font))    # 82: courier-medium-r-normal
@@ -96,27 +109,97 @@ def double_gaussian_fit(histo, parameters):
             pave_text.AddText('')
     pave_text.Draw()
 
-    canvas.SaveAs(BasicConfig.plotdir + plot_name + '_' + str(date.today()) + '.pdf')
+    save_as(canvas, BasicConfig.plotdir + plot_name + '_' + str(date.today()))
+
+
+def create_toc_plot(passed, total, parameters):
+    print('')
+    print('*** start create_toc_plot')
+
+    canvas = ROOT.TCanvas("c", "c", 1000, 600)
+
+    if 'rebin' in parameters:
+        passed.Rebin(parameters['rebin'])
+        total.Rebin(parameters['rebin'])
+    tg = ROOT.TGraphAsymmErrors(passed, total)
+    tg.GetXaxis().SetRangeUser(0, 400)
+    tg.GetYaxis().SetTitle('Efficiency')
+    if 'x_title' in parameters:
+        tg.GetXaxis().SetTitle(parameters['x_title'])
+    tg.Draw('AP')
+
+    AtlasStyle.ATLASLabel(0.50, 0.4, 'Work in Progress')
+    AtlasStyle.myText(0.55, 0.32, ROOT.kBlack, parameters['label'], 0.038)
+    if 'label2' in parameters:
+        AtlasStyle.myText(0.55, 0.24, ROOT.kBlack, parameters['label2'], 0.038)
+
+    save_as(canvas, BasicConfig.plotdir + parameters['plot_name'] + '_' + str(date.today()))
+
+
+def decorate_histogram(histogram, color, marker_style=20, line_style=1, fill_style=0):
+    histogram.SetLineColor(color)
+    histogram.SetMarkerColor(color)
+    histogram.SetFillColor(color)
+    histogram.SetMarkerStyle(marker_style)
+    histogram.SetLineStyle(line_style)
+    histogram.SetFillStyle(fill_style)
+
+
+def decorate_legend(legend):
+    legend.SetFillStyle(0)
+    legend.SetBorderSize(0)
+
+
+def decorate_line(line, color, style):
+    line.SetLineStyle(color)
+    line.SetLineStyle(style)
 
 if __name__ == '__main__':
     AtlasStyle.SetAtlasStyle()
-    filename = 'histograms_1200_1150.root'
-    tf = open_tfile(BasicConfig.rootcoredir + filename)
-    # R
-    histo_R = ROOT.TH1D()
-    tf.GetObject('diffVertPosR_DVPlusMETEff', histo_R)
-    parameters_R = {'x_min': -1.5, 'x_max': 1.5, 'width_high': 0.1, 'width_low': 0.3,
-                    'plot_name': 'diffVertPosR'}
-    double_gaussian_fit(histo_R, parameters_R)
-    # Phi
-    histo_Phi = ROOT.TH1D()
-    tf.GetObject('diffVertPosPhi_DVPlusMETEff', histo_Phi)
-    parameters_Phi = {'x_min': -1.5, 'x_max': 1.5, 'width_high': 0.1, 'width_low': 0.3,
-                      'plot_name': 'diffVertPos_Phi'}
-    double_gaussian_fit(histo_Phi, parameters_Phi)
-    # Z
-    histo_Z = ROOT.TH1D()
-    tf.GetObject('diffVertPosZ_DVPlusMETEff', histo_Z)
-    parameters_Z = {'x_min': -1.5, 'x_max': 1.5, 'width_high': 0.1, 'width_low': 0.5,
-                    'plot_name': 'diffVertPos_Z'}
-    double_gaussian_fit(histo_Z, parameters_Z)
+
+    do_resolution = False
+    if do_resolution:
+        filename = 'histograms_1200_1150.root'
+        tf = open_tfile(BasicConfig.rootcoredir + filename)
+        # R
+        histo_R = ROOT.TH1D()
+        tf.GetObject('diffVertPosR_DVPlusMETEff', histo_R)
+        parameters_R = {'x_min': -1.5, 'x_max': 1.5, 'width_high': 0.1, 'width_low': 0.3,
+                        'plot_name': 'diffVertPosR'}
+        double_gaussian_fit(histo_R, parameters_R)
+        # Phi
+        histo_Phi = ROOT.TH1D()
+        tf.GetObject('diffVertPosPhi_DVPlusMETEff', histo_Phi)
+        parameters_Phi = {'x_min': -1.5, 'x_max': 1.5, 'width_high': 0.1, 'width_low': 0.3,
+                          'plot_name': 'diffVertPos_Phi'}
+        double_gaussian_fit(histo_Phi, parameters_Phi)
+        # Z
+        histo_Z = ROOT.TH1D()
+        tf.GetObject('diffVertPosZ_DVPlusMETEff', histo_Z)
+        parameters_Z = {'x_min': -1.5, 'x_max': 1.5, 'width_high': 0.1, 'width_low': 0.5,
+                        'plot_name': 'diffVertPos_Z'}
+        double_gaussian_fit(histo_Z, parameters_Z)
+
+    do_toc = True
+    if do_toc:
+        # turn-on curve
+        sys_filename_2015 = 'all_2015_PeriodD.root'
+        sys_filename_2016 = 'all_2016_PeriodC.root'
+        passed_2015 = ROOT.TH1F()
+        passed_2016 = ROOT.TH1F()
+        total_2015 = ROOT.TH1F()
+        total_2016 = ROOT.TH1F()
+        tf_sys_2015 = open_tfile(BasicConfig.workdir + sys_filename_2015)
+        tf_sys_2016 = open_tfile(BasicConfig.workdir + sys_filename_2016)
+        tf_sys_2015.GetObject('calibMET_xe_SysUnc_MET', passed_2015)
+        tf_sys_2015.GetObject('calibMET_SysUnc_MET', total_2015)
+        tf_sys_2016.GetObject('calibMET_xe_SysUnc_MET', passed_2016)
+        tf_sys_2016.GetObject('calibMET_SysUnc_MET', total_2016)
+        parameters_2015 = {'plot_name': 'HLT_xe100_tc_lcw_wEFMu_TOC_2015', 'x_title': 'Missing E_{T} [GeV]',
+                           'label': 'data15_13TeV PeriodD DAOD_JETM2',
+                           'label2': 'HLT_xe100_tc_lcw_wEFMu', 'rebin': 2}
+        parameters_2016 = {'plot_name': 'HLT_xe100_mht_L1XE50_TOC_2016', 'x_title': 'Missing E_{T} [GeV]',
+                           'label': 'data16_13TeV PeriodC DAOD_JETM2',
+                           'label2': 'HLT_xe100_mht_L1XE50', 'rebin': 2}
+        create_toc_plot(passed_2015, total_2015, parameters_2015)
+        create_toc_plot(passed_2016, total_2016, parameters_2016)
