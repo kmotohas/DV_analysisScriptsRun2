@@ -14,18 +14,11 @@ try:
 except ImportError:
     # on my laptop
     sys.path.append('/usr/local/root/latest/lib')
-    sys.path.append(workdir + 'Macro/')
+    sys.path.append(BasicConfig.workdir + 'DV_analysisScriptsRun2/')
     import ROOT
     import AtlasStyle
 
-def OpenTFile(filepath):
-    tfile = ROOT.TFile(filepath, 'open')
-    if tfile.IsOpen():
-        print(filepath + ' is opened successfully!')
-    else:
-        print(filepath + ' failed to be opened!')
-        sys.exit()
-    return tfile
+import utils
 
 if __name__ == "__main__":
     # Configure ROOT as Atlas Style
@@ -43,6 +36,6 @@ if __name__ == "__main__":
             canvas = ROOT.TCanvas("c", "c", 1000, 600)
             matVol.showMaterialRegions(canvas)
         if RunConfig.doEstiHI:
-            tf = OpenTFile(BasicConfig.workdir + filename_DVMultiTrkBkg)
+            tf = utils.open_tfile(BasicConfig.workdir + filename_DVMultiTrkBkg)
             matVol.estimateHadronicInteractions(tf)
 
