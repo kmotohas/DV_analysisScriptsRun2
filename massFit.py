@@ -35,7 +35,7 @@ class MassFit:
         self.y_min = 0.60
         self.y_max = 0.80
         # normalisation region mDV > 6 GeV
-        self.m_cut = 6
+        self.m_cut = 8
         # 2nd control region
         self.m_cut2 = 8
         # signal region
@@ -203,7 +203,7 @@ class MassFit:
         pad2.SetGridy()
 
     def draw_mass_distributions_and_ratio(self, ntrk, region, h_data, h_model):
-        canvas2 = ROOT.TCanvas('canvas2', 'canvas2', 1200, 1200)
+        canvas2 = ROOT.TCanvas('canvas2', 'canvas2', 1000, 750)
         # mass distributions
         pad1 = ROOT.TPad('pad1', 'pad1', 0, 0.3, 1, 1.0)
         pad2 = ROOT.TPad('pad2', 'pad2', 0, 0.05, 1, 0.3)
@@ -258,12 +258,12 @@ class MassFit:
         h_ratio.GetYaxis().SetTitleFont(43)
         h_ratio.GetYaxis().SetTitleOffset(1.50)
         h_ratio.GetYaxis().SetLabelFont(43)  # Absolute font size in pixel (precision 3)
-        h_ratio.GetYaxis().SetLabelSize(25)
-        h_ratio.GetXaxis().SetTitleSize(30)
+        h_ratio.GetYaxis().SetLabelSize(35)
+        h_ratio.GetXaxis().SetTitleSize(35)
         h_ratio.GetXaxis().SetTitleFont(43)
-        h_ratio.GetXaxis().SetTitleOffset(4.1)
+        h_ratio.GetXaxis().SetTitleOffset(4.5)
         h_ratio.GetXaxis().SetLabelFont(43)  # Absolute font size in pixel (precision 3)
-        h_ratio.GetXaxis().SetLabelSize(25)
+        h_ratio.GetXaxis().SetLabelSize(35)
 
     def draw_breakdown(self, mode):
         print('***********************')
@@ -415,8 +415,8 @@ class MassFit:
         obs_8to10 = {x: int(sum(self.obs_list_8to10[x])) for x in range(3, 5)}
         est = {x: sum(self.est_list[x]) for x in range(3, 7)}
         est_8to10 = {x: sum(self.est_list_8to10[x]) for x in range(3, 5)}
-        est_err = {x: ROOT.TMath.Sqrt(sum(err*err for err in self.est_err_list[x])) / 7 for x in range(3, 7)}
-        est_err_8to10 = {x: ROOT.TMath.Sqrt(sum(err*err for err in self.est_err_list_8to10[x])) / 7 for x in range(3, 5)}
+        est_err = {x: ROOT.TMath.Sqrt(sum(err*err for err in self.est_err_list[x])) for x in range(3, 7)}
+        est_err_8to10 = {x: ROOT.TMath.Sqrt(sum(err*err for err in self.est_err_list_8to10[x])) for x in range(3, 5)}
 
         print('\\begin{table}')
         print('\\begin{center}')
