@@ -2,12 +2,20 @@ import os
 import sys
 
 username = os.environ.get('USER')
+hostname = os.environ.get('HOSTNAME')
 
+# my laptop
 workdir = '/Users/' + username + '/work/DisplacedVertices/Run2/'
+rootcoredir = '/Users/' + username + '/ATLAS/sw/projects/DV_xAODAnalysis/'
+
+if 'icepp.jp' in hostname:
+    workdir = '/home/' + username +'/DV/DV_analysisScriptsRun2/'
+    rootcoredir = '/home/' + username + '/DV/DV_xAODAnalysis/'
+elif 'lxplus' in hostname:
+    pass
+
 plotdir = workdir + 'plots/'
 histodir = workdir + 'histograms/'
-
-rootcoredir = '/Users/' + username + '/ATLAS/sw/projects/DV_xAODAnalysis/'
 
 try:
     import ROOT
