@@ -1,8 +1,14 @@
+import argparse
+
 from ROOT import *
 
 import BasicConfig
 import utils
 
+p = argparse.ArgumentParser()
+p.add_argument('-f', '--file', help='input TTree file name')
+args = p.parse_args()
+input_file_name = args.f
 
 def get_2track_mass_from_3track_dv(tree, idv, hist):
     mass_pion = 139.57*0.001  # [GeV]
@@ -67,7 +73,7 @@ if __name__ == '__main__':
         TH1F('mass_2_in_3_region'+str(region),';DV Mass [GeV]; Number of Vertices', 10000, 0, 10)
         for region in range(12)
     ]
-    input_tfile = utils.open_tfile(BasicConfig.rootcoredir + 'systTree.root')
+    input_tfile = utils.open_tfile(input_file_name)
     tree = input_tfile.Get('Nominal')
     entries = tree.GetEntries()
     for entry in range(entries):
