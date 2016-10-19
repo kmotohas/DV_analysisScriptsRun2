@@ -2,7 +2,10 @@ import os
 import sys
 
 username = os.environ.get('USER')
-hostname = os.environ.get('HOSTNAME')
+hostname = str(os.environ.get('HOSTNAME'))
+#if type(hostname) == NoneType:
+#    hostname = 'unknown'
+print(type(hostname))
 
 # my laptop
 workdir = '/Users/' + username + '/work/DisplacedVertices/Run2/'
