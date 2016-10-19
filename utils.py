@@ -297,6 +297,44 @@ def compare_two_ntuples(tree0, tree1, branch, nbin, xmin, xmax, cut, legend1, le
     draw_distributions_and_ratio(hist[0], hist[1], parameters)
 
 
+def get_region(tree, idv):
+    rDV = tree.DV_r[idv]
+    nonMaterial = tree.DV_passMatVeto[idv]
+    rIndex = -1
+
+    if     (rDV<22.  and nonMaterial):
+        rIndex = 0   # inside beampipe
+    elif(rDV<25.  and not nonMaterial):
+        rIndex = 1   # on beampipe
+    elif(rDV<29.  and nonMaterial):
+        rIndex = 2   # inside IBL
+    elif(rDV<38.  and not nonMaterial):
+        rIndex = 3   # around IBL
+    elif(rDV<46.  and nonMaterial):
+        rIndex = 4   # inside B-Layer
+    elif(rDV<73.  and not nonMaterial):
+        rIndex = 5   # around B-Layer
+    elif(rDV<84.  and nonMaterial):
+        rIndex = 6   # inside Layer-1
+    elif(rDV<111. and not nonMaterial):
+        rIndex = 7   # around Layer-1
+    elif(rDV<120. and nonMaterial):
+        rIndex = 8   # inside Layer-2
+    elif(rDV<145. and not nonMaterial):
+        rIndex = 9   # around Layer-2
+    elif(rDV<180. and nonMaterial):
+        rIndex = 10  # inside octagonal support
+    elif(rDV<300. and nonMaterial):
+        rIndex = 11  # inside/around 1st SCT Layer
+
+    return rIndex
+
+
+def show_progress(entry, entries):
+    if entry % 10000 == 0:
+        print('*** processed {0} out of {1} ({2:2.1f}%)'.format(entry, entries, float(entry)/entries*100))
+
+
 if __name__ == '__main__':
     AtlasStyle.SetAtlasStyle()
 
