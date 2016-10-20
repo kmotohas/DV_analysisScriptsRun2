@@ -1,5 +1,5 @@
 import argparse
-import numpy
+#import numpy
 
 from ROOT import *
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     for entry in range(entries):
         if entry % 10000 == 0:
             print('*****************************')
-            print('***** processed ' + entry + ' events')
+            print('***** processed ' + str(entry) + ' events')
         # get the next tree in the chain and verify
         ientry = tree1.LoadTree(entry)
         if ientry < 0:
