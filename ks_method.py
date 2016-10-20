@@ -6,9 +6,9 @@ import BasicConfig
 import utils
 
 p = argparse.ArgumentParser()
-p.add_argument('-f', '--file', help='input TTree file name')
+p.add_argument('-f', '--inputFile', help='input TTree file name')
 args = p.parse_args()
-input_file_name = args.f
+input_file_name = args.inputFile
 
 def get_2track_mass_from_3track_dv(tree, idv, hist):
     mass_pion = 139.57*0.001  # [GeV]
@@ -29,39 +29,6 @@ def get_2track_mass_from_3track_dv(tree, idv, hist):
         tlv2 = tlv0 + tlv1
         #print tlv2.M()
         hist.Fill(tlv2.M())
-
-
-def GetRegion(tree, idv):
-    rDV = tree.DV_r[idv]
-    nonMaterial = tree.DV_passMatVeto[idv]
-    rIndex = -1
-
-    if     (rDV<22.  and nonMaterial):
-        rIndex = 0   # inside beampipe
-    elif(rDV<25.  and not nonMaterial):
-        rIndex = 1   # on beampipe
-    elif(rDV<29.  and nonMaterial):
-        rIndex = 2   # inside IBL
-    elif(rDV<38.  and not nonMaterial):
-        rIndex = 3   # around IBL
-    elif(rDV<46.  and nonMaterial):
-        rIndex = 4   # inside B-Layer
-    elif(rDV<73.  and not nonMaterial):
-        rIndex = 5   # around B-Layer
-    elif(rDV<84.  and nonMaterial):
-        rIndex = 6   # inside Layer-1
-    elif(rDV<111. and not nonMaterial):
-        rIndex = 7   # around Layer-1
-    elif(rDV<120. and nonMaterial):
-        rIndex = 8   # inside Layer-2
-    elif(rDV<145. and not nonMaterial):
-        rIndex = 9   # around Layer-2
-    elif(rDV<180. and nonMaterial):
-        rIndex = 10  # inside octagonal support
-    elif(rDV<300. and nonMaterial):
-        rIndex = 11  # inside/around 1st SCT Layer
-
-    return rIndex
 
 
 if __name__ == '__main__':
@@ -89,7 +56,7 @@ if __name__ == '__main__':
             continue
 
         for idv, nTracks in enumerate(tree.DV_nTracks):
-            rIndex = GetRegion(tree, idv)
+            rIndex = utils.get_region(tree, idv)
             if rIndex < 0:
                 continue
             if not tree.DV_passFidCuts[idv] or not tree.DV_passChisqCut[idv] or not tree.DV_passDistCut[idv]:
@@ -101,7 +68,7 @@ if __name__ == '__main__':
             else:
                 continue
             #print('3-track mass = ' + str(tree.DV_m[idv]))
-    output_tfile = TFile('output_tfile.root', 'recreate')
+    output_tfile = TFile('output_ks_method.root', 'recreate')
     for region in range(12):
         h_mass_2[region].Write()
         h_mass_2_in_3[region].Write()
