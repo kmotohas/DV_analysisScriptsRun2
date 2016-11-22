@@ -313,8 +313,8 @@ def fill_ntuple():
             for step in range(n_reweight_steps):
                 target_ctau = TMath.Power(300., step/float(n_reweight_steps-1)) * 1e-3  # [mm]->[m]
                 lifetime_weight = get_lifetime_weight(tchain, target_ctau, ctau_MC)
-                #if pass_event_cut(tchain, 5) and tchain.MET > 220 and tchain.PassCut7:  # TODO
-                if pass_event_cut(tchain, 5) and tchain.MET > 250 and tchain.PassCut7:  # TODO
+                if pass_event_cut(tchain, 5) and tchain.MET > 220 and tchain.PassCut7:  # TODO
+                #if pass_event_cut(tchain, 5) and tchain.MET > 250 and tchain.PassCut7:  # TODO
                     #print(lifetime_weight)
                     n_passed_w1[step] += 1.
                     n_passed[step] += tchain.McEventWeight * tchain.PileupWeight * tchain.ISRWeight * lifetime_weight
@@ -405,8 +405,8 @@ def make_systematic_table():
                 if nb <= 0:
                     continue
                 #if pass_event_cut(tchain, 7):
-                #if pass_event_cut(tchain, 5) and tchain.MET > 220 and tchain.PassCut7:  # TODO
-                if pass_event_cut(tchain, 5) and tchain.MET > 250 and tchain.PassCut7:  # TODO
+                if pass_event_cut(tchain, 5) and tchain.MET > 220 and tchain.PassCut7:  # TODO
+                #if pass_event_cut(tchain, 5) and tchain.MET > 250 and tchain.PassCut7:  # TODO
                     #print(tree.McEventWeight, tree.PileupWeight)
                     n_events_weighted += tchain.McEventWeight * tchain.PileupWeight * tchain.ISRWeight
                     n_events_weighted_noISR += tchain.McEventWeight * tchain.PileupWeight
@@ -432,7 +432,7 @@ def make_systematic_table():
         #h_syst_diff.Draw('hbar')
 
 if __name__ == '__main__':
-    #make_systematic_table()
+    make_systematic_table()
     fill_ntuple()
-    #check_n_vertices_vs_met_threshold()
+    check_n_vertices_vs_met_threshold()
     #create_cut_flow()
