@@ -100,20 +100,88 @@ def draw_cross_section_limit(tree, mass_g, flavor_of_sample='MET_TLJets'):
     utils.save_as(canvas, BasicConfig.plotdir + 'xs_limit_mGluino' + str(mass_g) + flavor_of_sample)
 
 
+def draw_cross_section_limit_dM(tree, dM, flavor_of_sample='MET_TLJets'):
+    AtlasStyle.SetAtlasStyle()
+    entries = tree.GetEntries()
+    current_mass = 0
+    upper_limits = []
+    mass_g = []
+    index = -1
+    point = 0
+    for entry in range(entries):
+        tree.GetEntry(entry)
+        if tree.deltaM == dM or (dM == 'large' and tree.mGluino - tree.deltaM == 100):
+            if current_mass != tree.mGluino:
+                print('*** {0}, {1}'.format(tree.mGluino, tree.deltaM))
+                upper_limits.append(TGraphErrors())
+                mass_g.append(int(tree.mGluino))
+                index += 1
+                point = 0
+            current_mass = tree.mGluino
+            upper_limits[index].SetPoint(point, tree.ctau * 1e3, tree.xsUL)
+            #upper_limits[index].SetPointError(point, 0, tree.xsUL*tree.effRelStatErr+tree.xsUL*tree.effRelSystErr)
+            point += 1
+            print(tree.ctau, tree.xsUL)
+    canvas = TCanvas('c', 'c', 1000, 800)
+    canvas.SetLogx()
+    canvas.SetLogy()
+    h_xs = TH1F('xs', ';c#tau [mm]; Cross Section [fb]', 1000, 0.9, 310)
+    h_xs.GetYaxis().SetRangeUser(0.1, 100)
+    h_xs.Draw()
+    #h_xs_line = TH1F('xs_line', ';c#tau [mm]; Cross Section [fb]', 1000, 0.9, 310)
+    #print(mc.mass_xs_err[mass_g]['xs'] * 1e3)
+    legend = TLegend(0.60, 0.75, 0.83, 0.90)
+    for ii, upper_limit in enumerate(upper_limits):
+        #upper_limit.RemovePoint(0)
+        upper_limit.SetMarkerSize(0)
+        upper_limit.SetFillStyle(3001)
+        index = ii
+        #if dM[ii] == 130:
+        #    index = 1
+        #elif dM[ii] == 80:
+        #    index = 2
+        #    continue
+        #elif dM[ii] == 50:
+        #    index = 3
+        #elif dM[ii] == 30:
+        #    index = 4
+        #print(upper_limit)
+        upper_limit.SetFillColor(BasicConfig.colors[index+1])
+        upper_limit.SetLineColor(BasicConfig.colors[index+1])
+        upper_limit.Draw('lp,same')
+        #upper_limit.Draw('c,same')
+        #if dM[ii] > 100:
+        #    #legend.AddEntry(upper_limit, 'M_{#tilde{g}} = '+str(mass_g)+' GeV, #DeltaM = '+str(dM[ii])+' GeV', 'lf')
+        #    legend.AddEntry(upper_limit, '#DeltaM = '+str(dM[ii])+' GeV', 'lf')
+        #legend.AddEntry(upper_limit, '#DeltaM = '+str(dM[ii])+' GeV', 'lf')
+        legend.AddEntry(upper_limit, 'Mass G = ' + str(mass_g[ii]) + ' GeV', 'lf')
+    utils.decorate_legend(legend)
+    legend.Draw()
+    AtlasStyle.ATLASLabel(0.19, 0.87, 'Work in Progress')
+    AtlasStyle.myText(0.20, 0.79, kBlack, '#sqrt{s} = 13 TeV, #int L dt = 30 fb^{-1}', 0.035)
+    #AtlasStyle.myText(0.20, 0.73, kBlack, 'Split-SUSY Model, M_{#tilde{g}} = '+str(mass_g)+' GeV', 0.032)
+    #AtlasStyle.myText(0.20, 0.67, kBlack, 'M_{#tilde{g}} = '+str(mass_g)+' GeV', 0.035)
+    #if dM == 'large' and tree.mGluino - tree.deltaM == 100:
+    #    print('test')
+    utils.save_as(canvas, BasicConfig.plotdir + 'xs_limit_large_dM_' + flavor_of_sample)
+
+
 if __name__ == '__main__':
     input_tfile = TFile(BasicConfig.workdir + 'dv-multitrack-postprocessus/limits/rhadron_v00-02.root-out.root')
     flavor = 'MET_TLJets'
     input_tfile = TFile(BasicConfig.workdir + 'dv-multitrack-postprocessus/limits/rhadron_SimpleMETFilter.root-out.root')
+    #input_tfile = TFile(BasicConfig.workdir + 'dv-multitrack-postprocessus/limits/rhadron_SimpleMETFilter.root-out_01.root')
     flavor = 'SimpleMET'
     tree = TTree()
     tree = input_tfile.Get('outTree')
     #tree = gDirectory.FindObject('outTree')
 
-    draw_cross_section_limit(tree, mass_g=600, flavor_of_sample=flavor)
-    draw_cross_section_limit(tree, mass_g=800, flavor_of_sample=flavor)
-    draw_cross_section_limit(tree, mass_g=1000, flavor_of_sample=flavor)
-    draw_cross_section_limit(tree, mass_g=1200, flavor_of_sample=flavor)
-    draw_cross_section_limit(tree, mass_g=1400, flavor_of_sample=flavor)
-    draw_cross_section_limit(tree, mass_g=1600, flavor_of_sample=flavor)
-    draw_cross_section_limit(tree, mass_g=1800, flavor_of_sample=flavor)
-    draw_cross_section_limit(tree, mass_g=2000, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=600, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=800, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=1000, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=1200, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=1400, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=1600, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=1800, flavor_of_sample=flavor)
+    #draw_cross_section_limit(tree, mass_g=2000, flavor_of_sample=flavor)
+    draw_cross_section_limit_dM(tree, 'large', flavor_of_sample=flavor)
