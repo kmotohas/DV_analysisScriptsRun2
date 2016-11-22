@@ -29,6 +29,7 @@ def open_tfile(filepath):
 def save_as(canvas, file_name):
     canvas.SaveAs(file_name + '.pdf')
     canvas.SaveAs(file_name + '.png')
+    canvas.SaveAs(file_name + '.eps')
 
 
 def division_error_propagation(numerator, denominator):
@@ -154,18 +155,35 @@ def overlay_histograms(histograms, legends, parameters):
     for ii, (histogram, legend) in enumerate(zip(histograms, legends)):
         print(ii)
         decorate_histogram(histogram, BasicConfig.colors[ii])
+        if 'x_max' in parameters:
+            histogram.GetXaxis().SetRangeUser(0, parameters['x_max'])
         if ii == 0:
-            histograms[0].SetMinimum(y_min)
+            if 'doNorm' not in parameters:
+                histograms[0].SetMinimum(y_min)
+            else:
+                histograms[0].Scale(1./histograms[0].Integral())
+                histograms[0].SetMaximum(histograms[0].GetMaximum() * 1.5)
+                if 'noLogy' in parameters:
+                    histograms[0].SetMinimum(0)
             histogram.Draw()
         else:
-            if histogram.GetMaximum() > y_max:
+            if histogram.GetMaximum() > y_max and 'doNorm' not in parameters:
                 y_max = histogram.GetMaximum()
-                histograms[0].SetMaximum(y_max * 15)
+                if 'noLogy' not in parameters:
+                    histograms[0].SetMaximum(y_max * 15)
                 histogram.Draw('same')
+            elif 'doNorm' in parameters:
+                histogram.Scale(1./histogram.Integral())
+                if histogram.GetMaximum() > histograms[0].GetMaximum():
+                    histograms[0].SetMaximum(histogram.GetMaximum() * 1.5)
+                if 'noLogy' not in parameters:
+                    histograms[0].SetMaximum(histogram.GetMaximum() * 15)
             histogram.Draw('same')
         leg.AddEntry(histogram, legend, 'l')
     canvas.Update()
     canvas.SetLogy()
+    if 'noLogy' in parameters:
+        canvas.SetLogy(parameters['noLogy'])
     decorate_legend(leg)
     leg.Draw()
 
@@ -200,7 +218,7 @@ def decorate_ratio_plot(h_ratio, y_min, y_max):
     h_ratio.SetMinimum(y_min)
     h_ratio.SetMaximum(y_max)
     h_ratio.SetFillColor(ROOT.kGray)
-    h_ratio.SetFillStyle(3144)
+    h_ratio.SetFillStyle(3001)
     h_ratio.SetTitle('')  # // Remove the ratio title
     h_ratio.GetYaxis().SetTitle('Ratio')
     h_ratio.GetYaxis().SetNdivisions(505)
@@ -285,9 +303,11 @@ def compare_two_ntuples(tree0, tree1, branch, nbin, xmin, xmax, cut, legend1, le
     tree0.Draw("{0}>>h_{4}0({1},{2},{3})".format(branch, nbin, xmin, xmax, hname), cut)
     hist = [ROOT.TH1F(), ROOT.TH1F()]
     hist[0] = c.GetPrimitive('h_'+hname+'0').Clone('hist0')
+    hist[0].GetXaxis().SetTitle(branch)
     hist[0].SetLineColor(ROOT.kGray+3)
     tree1.Draw("{0}>>h_{4}1({1},{2},{3})".format(branch, nbin, xmin, xmax, hname), cut)
     hist[1] = c.GetPrimitive('h_'+hname+'1').Clone('hist1')
+    hist[1].GetXaxis().SetTitle(branch)
     hist[1].SetLineColor(ROOT.kPink-1)
     parameters = {'file_name': hname, 'legend1': legend1, 'legend2': legend2}
 
@@ -302,7 +322,7 @@ def get_region(tree, idv):
     nonMaterial = tree.DV_passMatVeto[idv]
     rIndex = -1
 
-    if     (rDV<22.  and nonMaterial):
+    if  (rDV<22.  and nonMaterial):
         rIndex = 0   # inside beampipe
     elif(rDV<25.  and not nonMaterial):
         rIndex = 1   # on beampipe
@@ -399,29 +419,80 @@ if __name__ == '__main__':
         parameters = {'plot_name': 'MET_phi', 'label': 'data16_13TeV run 304494 AOD'}
         overlay_histograms(h, legends, parameters)
 
-    tfile_group = open_tfile('/Users/kmotohas/ATLAS/sw/projects/DV_xAODAnalysis/histograms_302137_VrtSecInclusive_BasicPlots.root')
-    #tfile_central = open_tfile('/Users/kmotohas/ATLAS/sw/projects/DV_xAODAnalysis/histograms_307732_VrtSecInclusive_BasicPlots.root')
-    tfile_central = open_tfile('/Users/kmotohas/ATLAS/sw/projects/DV_xAODAnalysis/histograms_302137_VrtSecInclusive_BasicPlots_v2.root')
-    key_list = ['trkD0_all_BasicPlots', 'trkZ0_all_BasicPlots',
-                'trkD0_LargeD0_BasicPlots', 'trkZ0_LargeD0_BasicPlots',
-                'DVr_BasicPlots', 'DVmass_BasicPlots']
-    h_group = [ROOT.TH1F() for _ in key_list]
-    h_central = [ROOT.TH1F() for _ in key_list]
-    for ii, key in enumerate(key_list):
-        tfile_group.GetObject(key, h_group[ii])
-        h_group[ii].SetName(key+'group')
-        tfile_central.GetObject(key, h_central[ii])
-        h_central[ii].SetName(key+'central')
-    legend1 = 'run302137 (group-susy)'
-    legend2 = 'run302137 (central)'
-    #'run307732 (central)'
-    for ii, key in enumerate(key_list):
-        parameters = {'file_name': key, 'legend1': legend1, 'legend2': legend2}
-        draw_distributions_and_ratio(h_group[ii], h_central[ii], parameters)
-    #parameters = {'file_name': key_list[1], 'legend1': legend1, 'legend2': legend2}
-    #draw_distributions_and_ratio(h_group[1], h_central[1], parameters)
-    #parameters = {'file_name': key_list[2], 'legend1': legend1, 'legend2': legend2}
-    #draw_distributions_and_ratio(h_group[2], h_central[2], parameters)
-    #parameters = {'file_name': key_list[3], 'legend1': legend1, 'legend2': legend2}
-    #draw_distributions_and_ratio(h_group[3], h_central[3], parameters)
+    do_daod_validation = False
+    if do_daod_validation:
+        tfile_group = open_tfile('/Users/kmotohas/ATLAS/sw/projects/DV_xAODAnalysis/histograms_302137_VrtSecInclusive_BasicPlots.root')
+        #tfile_central = open_tfile('/Users/kmotohas/ATLAS/sw/projects/DV_xAODAnalysis/histograms_307732_VrtSecInclusive_BasicPlots.root')
+        tfile_central = open_tfile('/Users/kmotohas/ATLAS/sw/projects/DV_xAODAnalysis/histograms_302137_VrtSecInclusive_BasicPlots_v2.root')
+        key_list = ['trkD0_all_BasicPlots', 'trkZ0_all_BasicPlots',
+                    'trkD0_LargeD0_BasicPlots', 'trkZ0_LargeD0_BasicPlots',
+                    'DVr_BasicPlots', 'DVmass_BasicPlots']
+        h_group = [ROOT.TH1F() for _ in key_list]
+        h_central = [ROOT.TH1F() for _ in key_list]
+        for ii, key in enumerate(key_list):
+            tfile_group.GetObject(key, h_group[ii])
+            h_group[ii].SetName(key+'group')
+            tfile_central.GetObject(key, h_central[ii])
+            h_central[ii].SetName(key+'central')
+        legend1 = 'run302137 (group-susy)'
+        legend2 = 'run302137 (central)'
+        #'run307732 (central)'
+        for ii, key in enumerate(key_list):
+            parameters = {'file_name': key, 'legend1': legend1, 'legend2': legend2}
+            draw_distributions_and_ratio(h_group[ii], h_central[ii], parameters)
+        #parameters = {'file_name': key_list[1], 'legend1': legend1, 'legend2': legend2}
+        #draw_distributions_and_ratio(h_group[1], h_central[1], parameters)
+        #parameters = {'file_name': key_list[2], 'legend1': legend1, 'legend2': legend2}
+        #draw_distributions_and_ratio(h_group[2], h_central[2], parameters)
+        #parameters = {'file_name': key_list[3], 'legend1': legend1, 'legend2': legend2}
+        #draw_distributions_and_ratio(h_group[3], h_central[3], parameters)
 
+    tfile = open_tfile('/Users/kmotohas/work/DisplacedVertices/Run2/all_2016.root')
+    regions = [0, 2, 4, 6, 8, 10, 11]
+    h = [ROOT.TH1F() for _ in regions]
+    for ii, region in enumerate(regions):
+        tfile.GetObject('BkgEst_data_2Trk_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    legends = ['Data 2-track DV Region'+str(region) for region in regions]
+    parameters = {'plot_name': '2Trk_DV_mass', 'label': 'data16_13TeV', 'x_max': 50}
+    overlay_histograms(h, legends, parameters)
+
+    for ii, region in enumerate(regions):
+        tfile.GetObject('BkgEst_data_3Trk_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    legends = ['Data 3-track DV Region'+str(region) for region in regions]
+    parameters = {'plot_name': '3Trk_DV_mass', 'label': 'data16_13TeV', 'x_max': 20}
+    overlay_histograms(h, legends, parameters)
+
+    for ii, region in enumerate(regions):
+        tfile.GetObject('TrkProp_Pt_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    legends = ['Track Pt Region'+str(region) for region in regions]
+    parameters = {'plot_name': 'TrkProp_Pt', 'label': 'data16_13TeV',
+                  'doNorm': True}
+    overlay_histograms(h, legends, parameters)
+
+    for ii, region in enumerate(regions):
+        tfile.GetObject('TrkProp_Eta_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    legends = ['Track Eta Region'+str(region) for region in regions]
+    parameters = {'plot_name': 'TrkProp_Eta', 'label': 'data16_13TeV',
+                  'noLogy': 0, 'doNorm': True}
+    overlay_histograms(h, legends, parameters)
+
+    for ii, region in enumerate(regions):
+        tfile.GetObject('TrkProp_dEta_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    legends = ['Track dEta Region'+str(region) for region in regions]
+    parameters = {'plot_name': 'TrkProp_dEta', 'label': 'data16_13TeV',
+                  'noLogy': 0, 'doNorm': True}
+    overlay_histograms(h, legends, parameters)
+
+    for ii, region in enumerate(regions):
+        tfile.GetObject('TrkProp_Phi_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    legends = ['Track Phi Region'+str(region) for region in regions]
+    parameters = {'plot_name': 'TrkProp_Phi', 'label': 'data16_13TeV',
+                  'noLogy': 0, 'doNorm': True}
+    overlay_histograms(h, legends, parameters)
+
+    for ii, region in enumerate(regions):
+        tfile.GetObject('TrkProp_dPhi_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    legends = ['Track dPhi Region'+str(region) for region in regions]
+    parameters = {'plot_name': 'TrkProp_dPhi', 'label': 'data16_13TeV',
+                  'noLogy': 0, 'doNorm': True}
+    overlay_histograms(h, legends, parameters)
