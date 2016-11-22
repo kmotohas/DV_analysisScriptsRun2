@@ -4,6 +4,17 @@ from ROOT import *
 import array
 import argparse
 
+
+def basic_event_selection(tree):
+    # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
+    #  5: PV, 6: MET, 7: DV Selection]
+    return tree.PassCut3 and tree.PassCut4 and tree.PassCut5
+
+
+def basic_dv_selection(tree, idv):
+    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv]
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--inputFiles', type=str, help='comma separated input files')
 parser.add_argument('-o', '--outputFile', type=str, help='output file name')
@@ -53,8 +64,12 @@ try:
         nb = chain.GetEntry(entry)
         if nb <= 0:
             continue
+        if not basic_event_selection(chain):
+            continue
         pos_PV = TVector3(chain.PV_x, chain.PV_y, chain.PV_z)
         for idv in range(len(chain.DV_x)):
+            if not basic_dv_selection(chain, idv):
+                continue
             region[0] = chain.DV_Region[idv]
             pos_DV = TVector3(chain.DV_x[idv], chain.DV_y[idv], chain.DV_z[idv])
             tlv_DVPV = TLorentzVector()
