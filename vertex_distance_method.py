@@ -42,7 +42,7 @@ if __name__ == '__main__':
     #h_model_3d_33 = TH1F('model_3d_33', ';Vertex Pair Distance [mm]; Number of Vertices / mm', 250, 0, 250)
 
     for entry in xrange(entries):
-        if entry % 10000 == 0:
+        if entry % 100000 == 0:
             print('*****************************')
             print('***** processed ' + str(entry) + ' events')
         # get the next tree in the chain and verify
