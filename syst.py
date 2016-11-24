@@ -77,7 +77,7 @@ def get_lifetime_weight(tree, ctau, ctau_MC):
 
 
 def pass_base_event_selection(tree):
-    base_cuts = [tree.PassCut3, tree.PassCut4, tree.PassCut4]
+    base_cuts = [tree.PassCut3, tree.PassCut4, tree.PassCut5]
     passed_or_not = True
     for cut in base_cuts:
         passed_or_not &= cut
