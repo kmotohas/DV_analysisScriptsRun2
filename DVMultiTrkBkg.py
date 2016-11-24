@@ -15,25 +15,52 @@ m_Region = 0
 m_DVnTrk = 0
 m_DVPV = TLorentzVector()
 
+m_BkgEst_data_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_data_NoCross_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_Cross_NoLargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_Cross_LargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
-
+m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_CrossDelta_DeltaR_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 
 #irandom = int(gRandom.Uniform()*nTrkTemplates)
 irandom = 0
 
 def book_histograms():
+    global m_BkgEst_data_iTrk_Region
+    global m_BkgEst_data_NoCross_iTrk_Region
     global m_BkgEst_Cross_NoLargeAngle_iTrk_Region
     global m_BkgEst_Cross_LargeAngle_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region
     global m_BkgEst_CrossDelta_DeltaR_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region
     for itrk in range(2, 7):
         for region in range(12):
+            m_BkgEst_Cross_data_iTrk_Region[itrk][region] = TH1F('BkgEst_data_{0}Trk_Region{1}'.format(itrk, region),
+                                                                         ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
+            m_BkgEst_Cross_data_NoCross_iTrk_Region[itrk][region] = TH1F('BkgEst_data_NoCross_{0}Trk_Region{1}'.format(itrk, region),
+                                                                         ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
             m_BkgEst_Cross_NoLargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_NoLargeAngle_{0}Trk_Region{1}'.format(itrk, region),
                                                                          ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
             m_BkgEst_Cross_LargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_LargeAngle_{0}Trk_Region{1}'.format(itrk, region),
                                                                        ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
+            m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhi_NoLargeAngle_{0}Trk_Region{1}'.format(itrk, region),
+                                                                         ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
+            m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhi_LargeAngle_{0}Trk_Region{1}'.format(itrk, region),
+                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
             m_BkgEst_CrossDelta_DeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaDeltaR_{0}Trk_Region{1}'.format(itrk, region),
+                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
+            m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_{0}Trk_Region{1}'.format(itrk, region),
+                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
+            m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaEta_{0}Trk_Region{1}'.format(itrk, region),
+                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
+            m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiAngle_{0}Trk_Region{1}'.format(itrk, region),
                                                                        ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
 
 
@@ -96,33 +123,53 @@ def getMaxTrkAngle():
 
 def dvBkgEst(trkTemplate, nTrkTemplates):
     global irandom
-    #print('***')
-    #print('orig: '+str(m_tlvDV.M()))
+
+    # data
+    m_BkgEst_data_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
     max_average_opening_angle = getMaxTrkAngle()
+    if (max_average_opening_angle < m_angleCut):
+        m_BkgEst_data_NoCross_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+
     nLoops = m_DVnTrk-1 + (m_DVnTrk-2) * 5
     for _ in range(nLoops):
         # nominal template (delta track, delta R > 0.5)
-        isSampled, nTries, dvVtxCrossDeltaDeltaR = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=True, useDeltaPhi=True)
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=True, useDeltaPhi=True, cut='dR')
         if isSampled:
-            m_BkgEst_CrossDelta_DeltaR_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCrossDeltaDeltaR.M(), 1./nLoops)
+            m_BkgEst_CrossDelta_DeltaR_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        # using delta phi template (delta track, delta R > 0.5)
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
+        if isSampled:
+            m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        # using delta phi template (delta track, delta Eta > 0.5)
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dEta')
+        if isSampled:
+            m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        # using delta phi template (delta track, delta R > 0.5)
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='angle')
+        if isSampled:
+            m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        #
         # collimated template
         if (max_average_opening_angle < m_angleCut):
-            isSampled, nTries, dvVtxCrossNoLargeAngle = sample_random_track(trkTemplate, nTrkTemplates)
-            #irandom += nTries
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates)
             if isSampled:
-                m_BkgEst_Cross_NoLargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCrossNoLargeAngle.M(), 1./nLoops)
-                #print('nolarge: ' + str(dvVtxCrossNoLargeAngle.M()))
+                m_BkgEst_Cross_NoLargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            # use Delta Phi
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
         # large angle template
         else:
-            isSampled, nTries, dvVtxCrossLargeAngle = sample_random_track(trkTemplate, nTrkTemplates)
-            #irandom += nTries
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates)
             if isSampled:
-                m_BkgEst_Cross_LargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCrossLargeAngle.M(), 1./nLoops)
-            #print('large: ' + str(dvVtxCrossLargeAngle.M()))
-    #return irandom
+                m_BkgEst_Cross_LargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            # use Delta Phi
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
 
 
-def sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=False):
+def sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=False, cut='dR'):
     global irandom
     isSampled = False
     nTries = 0
@@ -145,10 +192,14 @@ def sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaP
         if useDeltaPhi:
             random_track_phi = m_DVPV.Phi() + trkTemplate.d_phi
         random_track.SetPtEtaPhiM(trkTemplate.pt, random_track_eta, random_track_phi, m_massPion)
-        if (random_track.DeltaR(m_DVPV) > m_angleCut):
-            return True, nTries, m_tlvDV+random_track
+        if cut == 'dR' and (random_track.DeltaR(m_DVPV) > m_angleCut):
+            return True, m_tlvDV+random_track
+        elif cut == 'dEta' and (TMath.Abs(random_track.Eta() - m_DVPV.Eta()) > m_angleCut):
+            return True, m_tlvDV+random_track
+        elif cut == 'angle' and (random_track.Angle(m_DVPV.Vect()) > m_angleCut):
+            return True, m_tlvDV+random_track
     print('Warning! A track was not sampled!')
-    return False, nTries, m_tlvDV
+    return False, m_tlvDV
 
     #print(entry, irandom, trkTemplate.pt, trkTemplate.eta, trkTemplate.phi)
 
@@ -175,7 +226,7 @@ def main():
     for input_file in input_files:
         chain.Add(input_file)
 
-    f = TFile('./DVtrkTemplate_v2.root', 'open')
+    f = TFile('./DVtrkTemplate_v3.root', 'open')
     trkTemplate = f.Get('DVtrkTemplate')
     nTrkTemplates = trkTemplate.GetEntries()
     
@@ -219,7 +270,12 @@ def main():
         for region in range(12):
             m_BkgEst_Cross_NoLargeAngle_iTrk_Region[itrk][region].Write()
             m_BkgEst_Cross_LargeAngle_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[itrk][region].Write()
+            m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[itrk][region].Write() 
             m_BkgEst_CrossDelta_DeltaR_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[itrk][region].Write() 
     #h_cut_flow_dv.Write()
     #h_DVmass_Ntrk.Write()
     #h_DVmass_Ntrk_MatVeto.Write()
