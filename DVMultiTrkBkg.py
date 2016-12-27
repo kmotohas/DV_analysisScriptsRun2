@@ -4,8 +4,9 @@ from ROOT import *
 
 import argparse
 
-m_angleCut = 0.5
+#m_angleCut = 0.5
 m_massPion = 139.57*0.001
+m_MET_min = 250
 
 m_dvTrks = []
 m_tlvDV = TLorentzVector()
@@ -15,53 +16,170 @@ m_Region = 0
 m_DVnTrk = 0
 m_DVPV = TLorentzVector()
 
+m_nEvents = TH1F()
+m_nEvents_MET = TH1F()
 m_BkgEst_data_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_data_loMET_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_data_hiMET_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_data_NoCross_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_data_NoCross_maxAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_data_NoCross_maxDeltaR_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_data_NoCross_maxDeltaEta_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_Cross_NoLargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_Cross_LargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_Cross_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_Cross_Angle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_Cross_DeltaR_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDelta_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_CrossDelta_DeltaR_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
-m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDelta_Angle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_loMET_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_hiMET_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_th08_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_th10_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_th15_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_pt20_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_pt15_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_pt10_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_pt5_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_dR10_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_dR15_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_dR20_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_CrossDeltaPhi_DeltaR_dR25_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+#m_AvgAngleDVmass_iTrk = [TH2F() for itrk in range(7)]
+m_AvgAngleDVmass_iTrk_Region = [[TH2F() for region in range(12)] for itrk in range(7)]
+#m_maxAngleDVmass_iTrk = [TH2F() for itrk in range(7)]
+m_maxAngleDVmass_iTrk_Region = [[TH2F() for region in range(12)] for itrk in range(7)]
+#m_dRDVmass_iTrk = [TH2F() for itrk in range(7)]
+m_dRDVmass_iTrk_Region = [[TH2F() for region in range(12)] for itrk in range(7)]
+m_dEtaDVmass_iTrk_Region = [[TH2F() for region in range(12)] for itrk in range(7)]
+flavors = ['Cross', 'DeltaPhi', 'Delta']
+props = ['EtaPhi', 'EtaDeltaPhi', 'DeltaEtaDeltaPhi']
+m_TrkProp_Pt_iTrk_Region = [[[TH1F() for region in range(12)] for itrk in range(7)] for flavor in flavors]
+m_TrkProp_Angle_iTrk_Region = [[[TH2F() for region in range(12)] for itrk in range(7)] for prop in props]
 
 #irandom = int(gRandom.Uniform()*nTrkTemplates)
 irandom = 0
 
 def book_histograms():
+    global m_nEvents
+    global m_nEvents_MET
     global m_BkgEst_data_iTrk_Region
+    global m_BkgEst_data_loMET_iTrk_Region
+    global m_BkgEst_data_hiMET_iTrk_Region
     global m_BkgEst_data_NoCross_iTrk_Region
+    global m_BkgEst_data_NoCross_maxAngle_iTrk_Region
+    global m_BkgEst_data_NoCross_maxDeltaR_iTrk_Region
+    global m_BkgEst_data_NoCross_maxDeltaEta_iTrk_Region
+    global m_BkgEst_Cross_iTrk_Region
+    global m_BkgEst_Cross_Angle_iTrk_Region
+    global m_BkgEst_Cross_DeltaR_iTrk_Region
     global m_BkgEst_Cross_NoLargeAngle_iTrk_Region
     global m_BkgEst_Cross_LargeAngle_iTrk_Region
     global m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region
     global m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region
+    global m_BkgEst_CrossDelta_iTrk_Region
     global m_BkgEst_CrossDelta_DeltaR_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_pt20_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_pt15_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_pt10_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_pt5_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_dR10_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_dR15_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_dR20_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_dR25_iTrk_Region
+    global m_BkgEst_CrossDelta_Angle_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_iTrk_Region
     global m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_loMET_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_hiMET_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_th08_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_th10_iTrk_Region
+    global m_BkgEst_CrossDeltaPhi_DeltaR_th15_iTrk_Region
     global m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region
     global m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region
+    global m_TrkProp_Pt_iTrk_Region
+    global m_TrkProp_Angle_iTrk_Region
+    #global m_AvgAngleDVmass_iTrk
+    global m_AvgAngleDVmass_iTrk_Region
+    #global m_maxAngleDVmass_iTrk
+    global m_maxAngleDVmass_iTrk_Region
+    #global m_dRDVmass_iTrk
+    global m_dRDVmass_iTrk_Region
+    global m_dEtaDVmass_iTrk_Region
+
+
+
+    m_nEvents = TH1F('nEvents', ';;Number of Events', 1, 0, 1)
+    m_nEvents_MET = TH1F('nEvents_MET', ';;Number of Events', 1, 0, 1)
+    nbins = 500
+    #x_min = 0
+    x_max = 100
     for itrk in range(2, 7):
         for region in range(12):
-            m_BkgEst_Cross_data_iTrk_Region[itrk][region] = TH1F('BkgEst_data_{0}Trk_Region{1}'.format(itrk, region),
-                                                                         ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_Cross_data_NoCross_iTrk_Region[itrk][region] = TH1F('BkgEst_data_NoCross_{0}Trk_Region{1}'.format(itrk, region),
-                                                                         ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_Cross_NoLargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_NoLargeAngle_{0}Trk_Region{1}'.format(itrk, region),
-                                                                         ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_Cross_LargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_LargeAngle_{0}Trk_Region{1}'.format(itrk, region),
-                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhi_NoLargeAngle_{0}Trk_Region{1}'.format(itrk, region),
-                                                                         ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhi_LargeAngle_{0}Trk_Region{1}'.format(itrk, region),
-                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_CrossDelta_DeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaDeltaR_{0}Trk_Region{1}'.format(itrk, region),
-                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_{0}Trk_Region{1}'.format(itrk, region),
-                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaEta_{0}Trk_Region{1}'.format(itrk, region),
-                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
-            m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiAngle_{0}Trk_Region{1}'.format(itrk, region),
-                                                                       ';Invariant Mass [GeV]; Number of Vertices', 500, 0, 100)
+            labels = ';Invariant Mass [GeV]; Number of Vertices'
+            m_BkgEst_data_iTrk_Region[itrk][region] = TH1F('BkgEst_data_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_data_loMET_iTrk_Region[itrk][region] = TH1F('BkgEst_data_loMET_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_data_hiMET_iTrk_Region[itrk][region] = TH1F('BkgEst_data_hiMET_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_data_NoCross_iTrk_Region[itrk][region] = TH1F('BkgEst_data_NoCross_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_data_NoCross_maxAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_data_NoCross_maxAngle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_data_NoCross_maxDeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_data_NoCross_maxDeltaR_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_data_NoCross_maxDeltaEta_iTrk_Region[itrk][region] = TH1F('BkgEst_data_NoCross_maxDeltaEta_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_Cross_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_Cross_Angle_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_Angle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_Cross_DeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_DeltaR_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_Cross_NoLargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_NoLargeAngle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_Cross_LargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_Cross_LargeAngle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhi_NoLargeAngle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhi_LargeAngle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDelta_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDelta_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDelta_DeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaDeltaR_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDelta_Angle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaAngle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhi_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_loMET_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_loMET_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_hiMET_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_hiMET_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_th08_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_th08_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_th10_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_th10_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_th15_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_th15_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt20_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_pt20_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt15_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_pt15_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt10_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_pt10_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt5_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_pt5_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR10_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_dR10_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR15_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_dR15_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR20_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_dR20_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR25_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaR_dR25_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiDeltaEta_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[itrk][region] = TH1F('BkgEst_CrossDeltaPhiAngle_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            labels = ';Average Angle [rad]; Invariant Mass [GeV]'
+            m_AvgAngleDVmass_iTrk_Region[itrk][region] = TH2F('AvgAngleDVmass_{0}Trk_Region{1}'.format(itrk, region), labels, 150, 0, 3.141592, nbins, 0, x_max)
+            labels = ';Max Angle [rad]; Invariant Mass [GeV]'
+            m_maxAngleDVmass_iTrk_Region[itrk][region] = TH2F('maxAngleDVmass_{0}Trk_Region{1}'.format(itrk, region), labels, 150, 0, 3.141592, nbins, 0, x_max)
+            labels = ';#Delta R; Invariant Mass [GeV]'
+            m_dRDVmass_iTrk_Region[itrk][region] = TH2F('dRDVmass_{0}Trk_Region{1}'.format(itrk, region), labels, 150, 0, 10, nbins, 0, x_max)
+            labels = ';#Delta#eta; Invariant Mass [GeV]'
+            m_dEtaDVmass_iTrk_Region[itrk][region] = TH2F('dEtaDVmass_{0}Trk_Region{1}'.format(itrk, region), labels, 150, 0, 5, nbins, 0, x_max)
+    #for ii,flavor in enumerate(flavors):
+    for jj,(prop,flavor) in enumerate(zip(props, flavors)):
+        for itrk in range(2, 7):
+            for region in range(12):
+                #if jj == 0:
+                m_TrkProp_Pt_iTrk_Region[jj][itrk][region] = TH1F('TrkProp_{2}_model_Pt_{0}Trk_Region{1}'.format(itrk, region, flavor), ';Track P_{T} [GeV]', 100, 0, 20)
+                #m_TrkProp_Pt_iTrk_Region[jj][itrk][region] = TH1F('TrkProp_model_Pt_{0}Trk_Region{1}'.format(itrk, region, flavor), ';Track P_{T} [GeV]', 100, 0, 20)
+                angle_label = ';#eta;#phi'
+                if prop == 'EtaDeltaPhi':
+                    angle_label = ';#eta;#Delta#phi'
+                if prop == 'DeltaEtaDeltaPhi':
+                    angle_label = ';#Delta#eta;#Delta#phi'
+                m_TrkProp_Angle_iTrk_Region[jj][itrk][region] = TH2F('TrkProp_{2}_model_{3}_{0}Trk_Region{1}'.format(itrk, region, flavor, prop),
+                                                                             angle_label, 150, -3.14, 3.14, 150, -3.14, 3.14)
 
 
 def basic_event_selection(tree):
@@ -71,7 +189,7 @@ def basic_event_selection(tree):
 
 
 def basic_dv_selection(tree, idv):
-    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv]
+    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto[idv]
 
 
 def dvInfo(tree, idv):
@@ -103,9 +221,18 @@ def dvInfo(tree, idv):
 
 def getMaxTrkAngle():
     maxTotalAngleToOtherTracks = 0.
+    maxAngleToDVPV = 0.
+    maxDeltaRToDVPV = 0.
+    maxDeltaEtaToDVPV = 0.
     #print('next_dvTrks_len'+str(len(m_dvTrks)))
     for ii, trk1 in enumerate(m_dvTrks):
         totalAngleToOtherTracks = 0.
+        tmp_angleToDVPV = trk1.Angle(m_DVPV.Vect())
+        maxAngleToDVPV = tmp_angleToDVPV if tmp_angleToDVPV > maxAngleToDVPV else maxAngleToDVPV
+        tmp_DeltaRToDVPV = trk1.DeltaR(m_DVPV)
+        maxDeltaRToDVPV = tmp_DeltaRToDVPV if tmp_DeltaRToDVPV > maxDeltaRToDVPV else maxDeltaRToDVPV
+        tmp_DeltaEtaToDVPV = TMath.Abs(trk1.Eta() - m_DVPV.Eta())
+        maxDeltaEtaToDVPV = tmp_DeltaEtaToDVPV if tmp_DeltaEtaToDVPV > maxDeltaEtaToDVPV else maxDeltaEtaToDVPV
         #print('trk1.Eta() '+str(trk1.Eta()))
         #print(ii)
         for jj in range(len(m_dvTrks)):
@@ -118,72 +245,192 @@ def getMaxTrkAngle():
         if (totalAngleToOtherTracks > maxTotalAngleToOtherTracks):
             maxTotalAngleToOtherTracks = totalAngleToOtherTracks
     #print('angle: '+str(maxTotalAngleToOtherTracks/(m_DVnTrk-1.)))
-    return maxTotalAngleToOtherTracks/(m_DVnTrk-1.)
+    return maxTotalAngleToOtherTracks/(m_DVnTrk-1.), maxAngleToDVPV, maxDeltaRToDVPV, maxDeltaEtaToDVPV
 
 
-def dvBkgEst(trkTemplate, nTrkTemplates):
+def dvBkgEst(trkTemplate, nTrkTemplates, MET):
     global irandom
 
+    m_angleCut = 0.5
     # data
     m_BkgEst_data_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
-    max_average_opening_angle = getMaxTrkAngle()
+    if MET < m_MET_min:
+        m_BkgEst_data_loMET_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+    else:
+        m_BkgEst_data_hiMET_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+    max_average_opening_angle, max_angle_DVPV, max_deltaR_DVPV, max_deltaEta_DVPV = getMaxTrkAngle()
     if (max_average_opening_angle < m_angleCut):
         m_BkgEst_data_NoCross_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+    if (max_angle_DVPV < m_angleCut):
+        m_BkgEst_data_NoCross_maxAngle_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+    if (max_deltaR_DVPV < m_angleCut):
+        m_BkgEst_data_NoCross_maxDeltaR_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+    if (max_deltaEta_DVPV < m_angleCut):
+        m_BkgEst_data_NoCross_maxDeltaEta_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+    m_AvgAngleDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_average_opening_angle, m_tlvDV.M())
+    m_maxAngleDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_angle_DVPV, m_tlvDV.M())
+    m_dRDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_deltaR_DVPV, m_tlvDV.M())
+    m_dEtaDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_deltaEta_DVPV, m_tlvDV.M())
 
-    nLoops = m_DVnTrk-1 + (m_DVnTrk-2) * 5
+    #if m_DVnTrk >= 6 or m_Region in [1, 3, 5, 7, 9]:
+    if m_DVnTrk >= 6 or m_Region < 0:
+        return
+
+    # flag to divide templates into collimated and large angle
+    construct_multiple_templates = False
+
+    construct_templates_with_angle_cut = True
+    use_pt_upper_limit = False
+    use_dR_upper_limit = False
+    change_dR_lower_threshold = True
+
+    #nLoops = m_DVnTrk-1 + (m_DVnTrk-2) * 2
+    nLoops = m_DVnTrk-1
+    #nLoops = 1
     for _ in range(nLoops):
+        #---------------------
+        # DELTA template
+        #--------------------
         # nominal template (delta track, delta R > 0.5)
-        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=True, useDeltaPhi=True, cut='dR')
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=True, useDeltaPhi=True, fillTrkProp=True, cut='dR')
         if isSampled:
             m_BkgEst_CrossDelta_DeltaR_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        # delta template (no cut)
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=True, useDeltaPhi=True, cut='none')
+        if isSampled:
+            m_BkgEst_CrossDelta_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        #---------------------
+        # DELTA PHI template
+        #--------------------
         # using delta phi template (delta track, delta R > 0.5)
-        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, fillTrkProp=True, cut='dR')
         if isSampled:
             m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            if MET < m_MET_min:
+                m_BkgEst_CrossDeltaPhi_DeltaR_loMET_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            else:
+                m_BkgEst_CrossDeltaPhi_DeltaR_hiMET_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
         # using delta phi template (delta track, delta Eta > 0.5)
         isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dEta')
         if isSampled:
             m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
-        # using delta phi template (delta track, delta R > 0.5)
-        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='angle')
+        # using delta phi template (delta track, no cut)
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='none')
         if isSampled:
-            m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            m_BkgEst_CrossDeltaPhi_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+
+        if change_dR_lower_threshold:
+            # using delta phi template (delta track, delta R > 0.8)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, threshold=0.8, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_th08_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            # using delta phi template (delta track, delta R > 1.0)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, threshold=1.0, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_th10_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            # using delta phi template (delta track, delta R > 1.5)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, threshold=1.5, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_th15_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+
+        if use_pt_upper_limit:
+            # using delta phi template (delta track, pt < 20)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, pt_max_GeV=20, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_pt20_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, pt_max_GeV=15, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_pt15_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, pt_max_GeV=10, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_pt10_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, pt_max_GeV=5, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_pt5_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        if use_dR_upper_limit:
+            # using delta phi template (delta track, dR < 1.0)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, dR_max=1.0, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_dR10_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, dR_max=1.5, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_dR15_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, dR_max=2.0, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_dR20_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, dR_max=2.5, cut='dR')
+            if isSampled:
+                m_BkgEst_CrossDeltaPhi_DeltaR_dR25_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        #---------------------
+        # NORMAL template
+        #--------------------
+        # using absolute template, no cut
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=False, cut='none')
+        if isSampled:
+            m_BkgEst_Cross_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+        # using absolute template, dR > 0.5
+        isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=False, fillTrkProp=True, cut='dR')
+        if isSampled:
+            m_BkgEst_Cross_DeltaR_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
         #
-        # collimated template
-        if (max_average_opening_angle < m_angleCut):
-            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates)
+        if construct_templates_with_angle_cut:
+            # delta template (angle > 0.5)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=True, useDeltaPhi=True, cut='angle')
             if isSampled:
-                m_BkgEst_Cross_NoLargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
-            # use Delta Phi
-            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
+                m_BkgEst_CrossDelta_Angle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            # using delta phi template (delta track, delta R > 0.5)
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='angle')
             if isSampled:
-                m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
-        # large angle template
-        else:
-            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates)
+                m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            # using absolute template, relative angle cut
+            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=False, cut='angle')
             if isSampled:
-                m_BkgEst_Cross_LargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
-            # use Delta Phi
-            isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
-            if isSampled:
-                m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+                m_BkgEst_Cross_Angle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+
+        #
+        #
+        if construct_multiple_templates:
+            # collimated template
+            if (max_average_opening_angle < m_angleCut):
+                isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates)
+                if isSampled:
+                    m_BkgEst_Cross_NoLargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+                # use Delta Phi
+                isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
+                if isSampled:
+                    m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+            # large angle template
+            else:
+                isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates)
+                if isSampled:
+                    m_BkgEst_Cross_LargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
+                # use Delta Phi
+                isSampled, dvVtxCross = sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=True, cut='dR')
+                if isSampled:
+                    m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[m_DVnTrk+1][m_Region].Fill(dvVtxCross.M(), 1./nLoops)
 
 
-def sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=False, cut='dR'):
+def sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaPhi=False, divideZregion=True, fillTrkProp=False,
+                        pt_max_GeV=10000, dEta_max=10, dPhi_max=10, dR_max=10, angle_max=10, threshold=0.5, cut='dR'):
     global irandom
-    isSampled = False
     nTries = 0
     random_track = TLorentzVector()
+    irandom = int(gRandom.Uniform()*nTrkTemplates)
+    isSampled = False
     while (not isSampled and nTries < 1000):
-        nTries += 1
         if TMath.Abs(irandom - nTrkTemplates) < 1:
-            irandom = int(gRandom.Uniform()*nTrkTemplates)
+            irandom = 0
         # get the next tree in the chain and verify
         ientry = trkTemplate.LoadTree(irandom)
         # copy next entry into memory and verify
         nb = trkTemplate.GetEntry(irandom)
         irandom += 1
         if m_Region != trkTemplate.region:
+            continue
+        nTries += 1
+        if divideZregion and m_posDV.Z() * trkTemplate.dv_z < 0:
+            continue
+        if trkTemplate.pt > pt_max_GeV:
             continue
         random_track_eta = trkTemplate.eta
         random_track_phi = trkTemplate.phi
@@ -192,16 +439,58 @@ def sample_random_track(trkTemplate, nTrkTemplates, useDeltaEta=False, useDeltaP
         if useDeltaPhi:
             random_track_phi = m_DVPV.Phi() + trkTemplate.d_phi
         random_track.SetPtEtaPhiM(trkTemplate.pt, random_track_eta, random_track_phi, m_massPion)
-        if cut == 'dR' and (random_track.DeltaR(m_DVPV) > m_angleCut):
-            return True, m_tlvDV+random_track
-        elif cut == 'dEta' and (TMath.Abs(random_track.Eta() - m_DVPV.Eta()) > m_angleCut):
-            return True, m_tlvDV+random_track
-        elif cut == 'angle' and (random_track.Angle(m_DVPV.Vect()) > m_angleCut):
-            return True, m_tlvDV+random_track
-    print('Warning! A track was not sampled!')
-    return False, m_tlvDV
+        if cut == 'dR' and (random_track.DeltaR(m_DVPV) > threshold):
+            isSampled = True
+        elif cut == 'dEta' and (abs(random_track.Eta() - m_DVPV.Eta()) > threshold):
+            isSampled = True
+        elif cut == 'angle' and (random_track.Angle(m_DVPV.Vect()) > threshold):
+            isSampled = True
+        elif cut == 'none':
+            isSampled = True
+    if isSampled:
+        #if irandom < 10000:
+        #if m_Region >= 10:
+        #    print(irandom, m_Region, random_track.Eta(), random_track.Phi(), nTrkTemplates)
+        if fillTrkProp and (m_tlvDV+random_track).M() > 3:
+            #print('before')
+            #print(random_track.Eta(), random_track.Phi())
+            #print(m_DVPV.Eta(), m_DVPV.Phi())
+            fill_TrkProp(useDeltaEta, useDeltaPhi, m_Region, random_track)
+        return True, m_tlvDV+random_track
+    if not isSampled:
+        print('Warning! A track was not sampled!')
+        return False, m_tlvDV
 
     #print(entry, irandom, trkTemplate.pt, trkTemplate.eta, trkTemplate.phi)
+
+
+def fill_TrkProp(useDeltaEta, useDeltaPhi, region, random_track):
+    ii = -1
+    if (not useDeltaEta) and (not useDeltaPhi):
+        ii = 0
+    elif (not useDeltaEta) and useDeltaPhi:
+        ii = 1
+    elif useDeltaEta and useDeltaPhi:
+        ii = 2
+    if ii < 0:
+        return
+    dvTrks = [trk for trk in m_dvTrks]
+    #dvTrks = []
+    dvTrks.append(random_track)
+    #print('after')
+    #print(random_track.Eta(), random_track.Phi())
+    #print(m_DVPV.Eta(), m_DVPV.Phi())
+    for dvTrk in dvTrks:
+        m_TrkProp_Pt_iTrk_Region[ii][m_DVnTrk+1][region].Fill(dvTrk.Pt())
+        if ii == 0:
+            # EtaPhi
+            m_TrkProp_Angle_iTrk_Region[ii][m_DVnTrk+1][region].Fill(dvTrk.Eta(), dvTrk.Phi())
+        elif ii == 1:
+            # EtaDeltaPhi
+            m_TrkProp_Angle_iTrk_Region[ii][m_DVnTrk+1][region].Fill(dvTrk.Eta(), dvTrk.Phi() - m_DVPV.Phi())
+        elif ii == 2:
+            # DeltaEtaDeltaPhi
+            m_TrkProp_Angle_iTrk_Region[ii][m_DVnTrk+1][region].Fill(dvTrk.Eta() - m_DVPV.Eta(), dvTrk.Phi() - m_DVPV.Phi())
 
 
 def main():
@@ -226,7 +515,9 @@ def main():
     for input_file in input_files:
         chain.Add(input_file)
 
-    f = TFile('./DVtrkTemplate_v3.root', 'open')
+    #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_v3.root', 'open')
+    #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_NonVetoOnly_v3.root', 'open')
+    f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_massCut_v06-00-00.root', 'open')
     trkTemplate = f.Get('DVtrkTemplate')
     nTrkTemplates = trkTemplate.GetEntries()
     
@@ -239,7 +530,7 @@ def main():
         for entry in range(entries):
             if not entry % 10000:
                 print('*** processed {0} out of {1} ({2}%)'.format(entry, entries, round(float(entry)/entries*100., 1)))
-                irandom = int(gRandom.Uniform()*nTrkTemplates)
+                #irandom = int(gRandom.Uniform()*nTrkTemplates)
                 #print(irandom)
             #if entry == 1000:
             #    break
@@ -251,31 +542,79 @@ def main():
             nb = chain.GetEntry(entry)
             if nb <= 0:
                 continue
+            if chain.EventNumber == 752668466:
+                continue
             event_weight = chain.McEventWeight * chain.PileupWeight * chain.ISRWeight
+            m_nEvents.Fill(0.5, event_weight)
+            #if chain.MET > 200:
+            #    continue
+            m_nEvents_MET.Fill(0.5, event_weight)
             if basic_event_selection(chain):
                 m_posPV.SetXYZ(chain.PV_x, chain.PV_y, chain.PV_z)
                 for idv in range(len(chain.DV_x)):
-                    if basic_dv_selection(chain, idv) and chain.DV_nTracks[idv] < 6 and chain.DV_Region[idv] >= 0:
+                    if basic_dv_selection(chain, idv) and chain.DV_nTracks[idv] < 7 and chain.DV_Region[idv] >= 0:
                         dvInfo(chain, idv)
                         #print('orig'+str(m_tlvDV.M()))
                         m_DVPV.SetVect(m_posDV - m_posPV)
                         
-                        dvBkgEst(trkTemplate, nTrkTemplates)
+                        dvBkgEst(trkTemplate, nTrkTemplates, chain.MET)
                         irandom += 1
     except KeyboardInterrupt:
         pass
         
     output_root.cd()
-    for itrk in range(3, 7):
+    m_nEvents.Write()
+    m_nEvents_MET.Write()
+    for itrk in range(2, 7):
         for region in range(12):
+            m_BkgEst_data_iTrk_Region[itrk][region].Write()
+            m_BkgEst_data_loMET_iTrk_Region[itrk][region].Write()
+            m_BkgEst_data_hiMET_iTrk_Region[itrk][region].Write()
+            m_BkgEst_data_NoCross_iTrk_Region[itrk][region].Write()
+            m_BkgEst_data_NoCross_maxAngle_iTrk_Region[itrk][region].Write()
+            m_BkgEst_data_NoCross_maxDeltaR_iTrk_Region[itrk][region].Write()
+            m_BkgEst_data_NoCross_maxDeltaEta_iTrk_Region[itrk][region].Write()
+            #
+            m_AvgAngleDVmass_iTrk_Region[itrk][region].Write() 
+            m_maxAngleDVmass_iTrk_Region[itrk][region].Write() 
+            m_dRDVmass_iTrk_Region[itrk][region].Write() 
+            m_dEtaDVmass_iTrk_Region[itrk][region].Write() 
+            if itrk == 2:
+                continue
+            m_BkgEst_Cross_iTrk_Region[itrk][region].Write()
+            m_BkgEst_Cross_Angle_iTrk_Region[itrk][region].Write()
+            m_BkgEst_Cross_DeltaR_iTrk_Region[itrk][region].Write()
             m_BkgEst_Cross_NoLargeAngle_iTrk_Region[itrk][region].Write()
             m_BkgEst_Cross_LargeAngle_iTrk_Region[itrk][region].Write() 
             m_BkgEst_CrossDeltaPhi_NoLargeAngle_iTrk_Region[itrk][region].Write()
-            m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[itrk][region].Write() 
+            #m_BkgEst_CrossDeltaPhi_LargeAngle_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDelta_iTrk_Region[itrk][region].Write() 
             m_BkgEst_CrossDelta_DeltaR_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDelta_Angle_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_iTrk_Region[itrk][region].Write() 
             m_BkgEst_CrossDeltaPhi_DeltaR_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_loMET_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_hiMET_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_th08_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_th10_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_th15_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt20_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt15_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt10_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_pt5_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR10_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR15_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR20_iTrk_Region[itrk][region].Write() 
+            m_BkgEst_CrossDeltaPhi_DeltaR_dR25_iTrk_Region[itrk][region].Write() 
             m_BkgEst_CrossDeltaPhi_DeltaEta_iTrk_Region[itrk][region].Write() 
             m_BkgEst_CrossDeltaPhi_Angle_iTrk_Region[itrk][region].Write() 
+    #for ii,flavor in enumerate(flavors):
+    for jj,prop in enumerate(props):
+            for itrk in range(3, 7):
+                for region in range(12):
+                    #if jj == 0:
+                    m_TrkProp_Pt_iTrk_Region[jj][itrk][region].Write()
+                    m_TrkProp_Angle_iTrk_Region[jj][itrk][region].Write()
     #h_cut_flow_dv.Write()
     #h_DVmass_Ntrk.Write()
     #h_DVmass_Ntrk_MatVeto.Write()

@@ -3,7 +3,7 @@ import re
 #import os
 from glob import glob
 from array import array
-import numpy as np
+#import numpy as np
 
 # ROOT
 from ROOT import gROOT
@@ -27,14 +27,29 @@ import BasicConfig
 import utils
 import mc
 
+import argparse
+parser = argparse.ArgumentParser()
+#parser.add_argument('-f', '--inputFiles', type=str, help='comma separated input files')
+parser.add_argument('-f', '--inputFile', type=str, help='input file')
+#parser.add_argument('-o', '--outputFile', type=str, help='output file name')
+args = parser.parse_args()
+
+#input_files = args.inputFiles.split(',')
+print('*** input files: ')
+print(args.inputFile)
+
+#print('*** output file: ')
+#print(args.outputFile)
+#output_root = TFile(args.outputFile, 'recreate')
+
 
 def pass_event_cut(tree, cut_level):
     # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
     #  5: PV, 6: MET, 7: DV Selection]
     #event_cuts = [tree.PassCut1, tree.PassCut2, tree.PassCut3, tree.PassCut4,
     #              tree.PassCut5, tree.PassCut6]
-    event_cuts = [tree.PassCut1, True, tree.PassCut3, tree.PassCut4,
-                  tree.PassCut5, tree.PassCut6]
+    event_cuts = [tree.PassCut1, tree.PassCut2, tree.PassCut3, tree.PassCut4,
+                  tree.PassCut5, tree.PassCut6, tree.PassCut7]
                   #tree.PassCut5, tree.PassCut6, tree.PassCut7]  # TODO
     passed_or_not = True
     for cut in event_cuts[:cut_level]:
@@ -43,8 +58,10 @@ def pass_event_cut(tree, cut_level):
 
 
 def pass_dv_cut(tree, cut_level):
-    DV_cuts = [tree.DV_PassFidCuts, tree.DV_PassChisqCut, tree.DV_PassDistCut, tree.DV_PassMatVeto,
-               tree.DV_PassNtrkCut, tree.DV_PassMassCut]
+    #DV_cuts = [tree.DV_PassFidCuts, tree.DV_PassChisqCut, tree.DV_PassDistCut, tree.DV_PassMatVeto,
+    #           tree.DV_PassNtrkCut, tree.DV_PassMassCut]
+    DV_cuts = [tree.DV_passFidCuts, tree.DV_passChisqCut, tree.DV_passDistCut, tree.DV_passMatVeto,
+               tree.DV_passNtrkCut, tree.DV_passMassCut]
     passed_or_not = True
     for cut in DV_cuts[:cut_level]:
         passed_or_not &= cut
@@ -95,16 +112,18 @@ def pass_base_dv_selection(tree, dv_index):
 def check_n_vertices_vs_met_threshold():
     AtlasStyle.SetAtlasStyle()
 
-    input_tfile = utils.open_tfile(BasicConfig.workdir + 'DVTree_NTuple_data15_13TeV.root')
-    tree = input_tfile.Get('DVTree_NTuple')
+    #input_tfile = utils.open_tfile(BasicConfig.workdir + 'DVTree_NTuple_data15_13TeV.root')
+    input_tfile = utils.open_tfile(args.inputFile)
+    #tree = input_tfile.Get('DVTree_NTuple')
+    tree = input_tfile.Get('Nominal')
 
     bin_name = ['Base', 'Trigger', 'Filter', 'MET200', 'MET220', 'MET250']
     h_nevents_cut = TH1F('nevents_cut', ';;Double Ratio', len(bin_name), 0, len(bin_name))
     h_nevents_all = TH1F('nevents_all', ';;Double Ratio', len(bin_name), 0, len(bin_name))
     h_ndvs_cut = {ntracks: TH1F('ndvs_cut_'+str(ntracks), ';;Double Ratio', len(bin_name), 0, len(bin_name))
-                  for ntracks in range(2, 30)}
+                  for ntracks in range(2, 6)}
     h_ndvs_all = {ntracks: TH1F('ndvs_all_'+str(ntracks), ';;Double Ratio', len(bin_name), 0, len(bin_name))
-                  for ntracks in range(2, 30)}
+                  for ntracks in range(2, 6)}
     for bin, name in enumerate(bin_name):
         h_nevents_cut.GetXaxis().SetBinLabel(bin+1, name)
         h_nevents_all.GetXaxis().SetBinLabel(bin+1, name)
@@ -131,47 +150,47 @@ def check_n_vertices_vs_met_threshold():
         for name in bin_name:
             h_nevents_all.Fill(name, 1.)
             for dv_index, DV_nTracks in enumerate(tree.DV_nTracks):
-                if pass_base_dv_selection(tree, dv_index):
+                if pass_base_dv_selection(tree, dv_index) and DV_nTracks < 6:
                     h_ndvs_all[DV_nTracks].Fill(name, 1.)
         #
         h_nevents_cut.Fill('Base', 1.)
         for dv_index, DV_nTracks in enumerate(tree.DV_nTracks):
-            if pass_base_dv_selection(tree, dv_index):
+            if pass_base_dv_selection(tree, dv_index) and DV_nTracks < 6:
                 h_ndvs_cut[DV_nTracks].Fill('Base', 1.)
         #
         if not tree.PassCut1:
             continue
         h_nevents_cut.Fill('Trigger', 1.)
         for dv_index, DV_nTracks in enumerate(tree.DV_nTracks):
-            if pass_base_dv_selection(tree, dv_index):
+            if pass_base_dv_selection(tree, dv_index) and DV_nTracks < 6:
                 h_ndvs_cut[DV_nTracks].Fill('Trigger', 1.)
         #
         if not tree.PassCut2:
             continue
         h_nevents_cut.Fill('Filter', 1.)
         for dv_index, DV_nTracks in enumerate(tree.DV_nTracks):
-            if pass_base_dv_selection(tree, dv_index):
+            if pass_base_dv_selection(tree, dv_index) and DV_nTracks < 6:
                 h_ndvs_cut[DV_nTracks].Fill('Filter', 1.)
         #
         if not tree.MET > 200:
             continue
         h_nevents_cut.Fill('MET200', 1.)
         for dv_index, DV_nTracks in enumerate(tree.DV_nTracks):
-            if pass_base_dv_selection(tree, dv_index):
+            if pass_base_dv_selection(tree, dv_index) and DV_nTracks < 6:
                 h_ndvs_cut[DV_nTracks].Fill('MET200', 1.)
         #
         if not tree.MET > 220:
             continue
         h_nevents_cut.Fill('MET220', 1.)
         for dv_index, DV_nTracks in enumerate(tree.DV_nTracks):
-            if pass_base_dv_selection(tree, dv_index):
+            if pass_base_dv_selection(tree, dv_index) and DV_nTracks < 6:
                 h_ndvs_cut[DV_nTracks].Fill('MET220', 1.)
         #
         if not tree.MET > 250:
             continue
         h_nevents_cut.Fill('MET250', 1.)
         for dv_index, DV_nTracks in enumerate(tree.DV_nTracks):
-            if pass_base_dv_selection(tree, dv_index):
+            if pass_base_dv_selection(tree, dv_index) and DV_nTracks < 6:
                 h_ndvs_cut[DV_nTracks].Fill('MET250', 1.)
     #
     canvas = TCanvas('canvas', 'canvas', 1200, 800)
@@ -193,7 +212,7 @@ def check_n_vertices_vs_met_threshold():
     utils.decorate_legend(legend)
     legend.Draw()
     utils.save_as(canvas, BasicConfig.plotdir + 'nVerts_met_dependency')
-    output = TFile('test.root', 'recreate')
+    output = TFile('nVerts_met_dependency.root', 'recreate')
     canvas.Write()
     output.Close()
 
@@ -201,11 +220,14 @@ def check_n_vertices_vs_met_threshold():
 def create_cut_flow():
     AtlasStyle.SetAtlasStyle()
 
-    input_tfile = utils.open_tfile(BasicConfig.workdir + 'DVTree_NTuple_data15_13TeV.root')
-    tree = input_tfile.Get('DVTree_NTuple')
+    #input_tfile = utils.open_tfile(BasicConfig.workdir + 'DVTree_NTuple_data15_13TeV.root')
+    #tree = input_tfile.Get('DVTree_NTuple')
+    input_tfile = utils.open_tfile(args.inputFile)
+    tree = input_tfile.Get('Nominal')
 
     cut_flow = ['Initial', 'Trigger', 'Filter', 'Cleaning', 'GRL', 'PV', 'MET', 'DV Selection']
     h_cut_flow = TH1F('cut_flow', ';;Number of Events', len(cut_flow), 0, len(cut_flow))
+    h_cut_flow2 = TH1F('cut_flow2', ';;Number of Events', len(cut_flow), 0, len(cut_flow))
     for bin, cut in enumerate(cut_flow):
         h_cut_flow.GetXaxis().SetBinLabel(bin+1, cut)
     #
@@ -223,26 +245,40 @@ def create_cut_flow():
         nb = tree.GetEntry(entry)
         if nb <= 0:
             continue
+        event_weight = tree.McEventWeight * tree.PileupWeight * tree.ISRWeight
         for step, cut in enumerate(cut_flow):
             if step == 0:
-                h_cut_flow.Fill(cut, 1.)
+                h_cut_flow.Fill(cut, event_weight)
+                h_cut_flow2.Fill(cut, event_weight)
+            elif step == 2:
+                if tree.RandomRunNumber < 309311 and pass_event_cut(tree, 2):
+                    h_cut_flow.Fill(cut, event_weight)
+                if tree.RandomRunNumber > 309311 and pass_event_cut(tree, 2):
+                    h_cut_flow2.Fill(cut, event_weight)
             elif step == 6:
-                if pass_event_cut(tree, 5) and tree.MET > 220:
-                    h_cut_flow.Fill(cut, 1.)
+                if tree.RandomRunNumber < 309311 and pass_event_cut(tree, 6):
+                    h_cut_flow.Fill(cut, event_weight)
+                if tree.RandomRunNumber > 309311 and pass_event_cut(tree, 6):
+                    h_cut_flow2.Fill(cut, event_weight)
             elif step == 7:
-                have_signal_like_dv = False
-                for dv_index in range(len(tree.DV_passVtxCuts)):
-                    have_signal_like_dv = have_signal_like_dv or tree.DV_passVtxCuts[dv_index]
-                if pass_event_cut(tree, 5) and tree.MET > 220 and have_signal_like_dv:
-                    h_cut_flow.Fill(cut, 1.)
+                #have_signal_like_dv = False
+                #for dv_index in range(len(tree.DV_passVtxCuts)):
+                #    have_signal_like_dv = have_signal_like_dv or tree.DV_passVtxCuts[dv_index]
+                #if pass_event_cut(tree, 7) and tree.MET > 220 and have_signal_like_dv:
+                if tree.RandomRunNumber < 309311 and pass_event_cut(tree, 7):
+                    h_cut_flow.Fill(cut, event_weight)
+                if tree.RandomRunNumber > 309311 and pass_event_cut(tree, 7):
+                    h_cut_flow2.Fill(cut, event_weight)
             elif pass_event_cut(tree, step):
-                h_cut_flow.Fill(cut, 1.)
+                h_cut_flow.Fill(cut, event_weight)
+                h_cut_flow2.Fill(cut, event_weight)
     output = TFile('cut_flow.root', 'recreate')
     h_cut_flow.Write()
     output.Close()
 
 
 def fill_ntuple():
+    print('*** starting fill_ntuple() ')
     AtlasStyle.SetAtlasStyle()
 
 #    # get key list
@@ -273,10 +309,12 @@ def fill_ntuple():
     tree.Branch("effRelSystErr", eff_syst_error, 'effRelSystErr/F')
 
     #directory = '/afs/cern.ch/work/k/kmotohas/DisplacedVertex/DV_xAODAnalysis/submitDir_LSF/mc/hist_DVPlusMETSys/'
-    directory = BasicConfig.workdir + 'hist_DVPlusMETSys/'
+    #directory = BasicConfig.workdir + 'hist_DVPlusMETSys/'
+    directory = '/home/motohash/data/mc15_13TeV/DVPlusMETSys/'
 
     #c = 299792458.  # [m/s]
-    tchains = [[dsid, TChain('Nominal', str(dsid))] for dsid in range(402700, 402740)]
+    #tchains = [[dsid, TChain('Nominal', str(dsid))] for dsid in range(402700, 402740)]
+    tchains = [[dsid, TChain('Nominal', str(dsid))] for dsid in mc.parameters.keys()]
 
     systematic_tables = TFile('systematic_summary_SimpleMETFilter.root', 'open')
     table = TH1F()
@@ -287,7 +325,8 @@ def fill_ntuple():
         print('')
         print(dsid)
         #index = 0
-        for input in glob(directory + 'systTree_' + str(dsid) + '_*.root'):
+        #for input in glob(directory + 'systTree_' + str(dsid) + '_*.root'):
+        for input in glob(directory+'systTree_mc15_13TeV.' + str(dsid) + '*.root'):
             print(input)
             tchain.Add(input)
         mass_gluino[0] = mc.parameters[dsid]['g']
@@ -309,12 +348,14 @@ def fill_ntuple():
             nb = tchain.GetEntry(entry)
             if nb <= 0:
                 continue
-            ctau_MC = TMath.C() * mc.parameters[dsid]['t'] * 1e-9  # [pm]->[m]
+            ctau_MC = TMath.C() * mc.parameters[dsid]['t'] * 1e-9  # [nm]->[m]
             for step in range(n_reweight_steps):
                 target_ctau = TMath.Power(300., step/float(n_reweight_steps-1)) * 1e-3  # [mm]->[m]
                 lifetime_weight = get_lifetime_weight(tchain, target_ctau, ctau_MC)
-                if pass_event_cut(tchain, 5) and tchain.MET > 220 and tchain.PassCut7:  # TODO
+                #if pass_event_cut(tchain, 5) and tchain.MET > 220 and tchain.PassCut7:  # TODO
                 #if pass_event_cut(tchain, 5) and tchain.MET > 250 and tchain.PassCut7:  # TODO
+                if tchain.RandomRunNumber > 309311 and pass_event_cut(tchain, 7):
+                #if tchain.RandomRunNumber < 309311 and pass_event_cut(tchain, 7):
                     #print(lifetime_weight)
                     n_passed_w1[step] += 1.
                     n_passed[step] += tchain.McEventWeight * tchain.PileupWeight * tchain.ISRWeight * lifetime_weight
@@ -351,9 +392,11 @@ def make_systematic_table():
     AtlasStyle.SetAtlasStyle()
 
     #directory = '/afs/cern.ch/work/k/kmotohas/DisplacedVertex/DV_xAODAnalysis/submitDir_LSF/mc/hist_DVPlusMETSys/'
-    directory = BasicConfig.workdir + 'hist_DVPlusMETSys/'
+    #directory = BasicConfig.workdir + 'hist_DVPlusMETSys/'
+    directory = '/home/motohash/data/mc15_13TeV/DVPlusMETSys/'
 
-    tfile = TFile(BasicConfig.workdir + 'systTree.root')
+    #tfile = TFile(BasicConfig.workdir + 'systTree.root')
+    tfile = TFile(args.inputFile)
     key_list_all = [key.GetName() for key in gDirectory.GetListOfKeys()]
     print(len(key_list_all), key_list_all)
     regex = re.compile('Nominal|PRW|JET|MET.*')
@@ -363,7 +406,9 @@ def make_systematic_table():
 
     output_tfile = TFile('systematic_summary_SimpleMETFilter.root', 'recreate')
 
-    tchains = [[dsid, [TChain(key, key+str(dsid)) for key in key_list]] for dsid in range(402700, 402740)]
+    #tchains = [[dsid, [TChain(key, key+str(dsid)) for key in key_list]] for dsid in range(402700, 402740)]
+    #tchains = [[dsid, [TChain(key, key+str(dsid)) for key in key_list]] for dsid in mc.parameters.keys()]
+    tchains = [[dsid, [TChain(key, key+str(dsid)) for key in key_list]] for dsid in range(402070, 402080)]
 
     #trees = [gROOT.FindObject(key) for key in key_list]
     #entries_list = [tree.GetEntriesFast() for tree in trees]
@@ -373,8 +418,9 @@ def make_systematic_table():
     for dsid, each_tchain in tchains:
         print('')
         print(dsid)
+        #print glob(directory + 'systTree_mc15_13TeV.' + str(dsid) + '*.root')
         for tchain in each_tchain:
-            for input in glob(directory + 'systTree_' + str(dsid) + '_*.root'):
+            for input in glob(directory + 'systTree_mc15_13TeV.' + str(dsid) + '*.root'):
                 #print(input)
                 tchain.Add(input)
 
@@ -397,9 +443,9 @@ def make_systematic_table():
                 continue
             for entry in xrange(entries):
                 ## get the next tree in the chain and verify
-                #ientry = tree.LoadTree(entry)
-                #if ientry < 0:
-                #    break
+                ientry = tchain.LoadTree(entry)
+                if ientry < 0:
+                    break
                 ## copy next entry into memory and verify
                 nb = tchain.GetEntry(entry)
                 if nb <= 0:
@@ -433,6 +479,6 @@ def make_systematic_table():
 
 if __name__ == '__main__':
     make_systematic_table()
-    fill_ntuple()
-    check_n_vertices_vs_met_threshold()
+    #fill_ntuple()
+    #check_n_vertices_vs_met_threshold()
     #create_cut_flow()

@@ -12,7 +12,8 @@ def basic_event_selection(tree):
 
 
 def basic_dv_selection(tree, idv):
-    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv]
+    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv]
+    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto[idv]
 
 
 if __name__ == '__main__':
@@ -38,7 +39,10 @@ if __name__ == '__main__':
     dv_z = array.array('f', [0.])
     dv_phi = array.array('f', [0.])
     dv_eta = array.array('f', [0.])
+    dv_nTracks = array.array('i', [0])
+    dv_m = array.array('f', [0.])
     region = array.array('i', [0])
+    met = array.array('f', [0.])
     #
     # create the branches and assign the fill-variables to them
     t.Branch('pt', pt, 'pt/F')
@@ -50,7 +54,10 @@ if __name__ == '__main__':
     t.Branch('dv_z', dv_z, 'dv_z/F')
     t.Branch('dv_phi', dv_phi, 'dv_phi/F')
     t.Branch('dv_eta', dv_eta, 'dv_eta/F')
+    t.Branch('dv_nTracks', dv_nTracks, 'dv_nTracks/I')
+    t.Branch('dv_m', dv_m, 'dv_m/F')
     t.Branch('region', region, 'region/I')
+    t.Branch('met', met, 'met/F')
     #
     chain = TChain('Nominal', 'Nominal Tree')
     #for input_file in input_files:
@@ -72,6 +79,8 @@ if __name__ == '__main__':
             nb = chain.GetEntry(entry)
             if nb <= 0:
                 continue
+            if chain.EventNumber == 752668466:
+                continue
             if not basic_event_selection(chain):
                 continue
             pos_PV = TVector3(chain.PV_x, chain.PV_y, chain.PV_z)
@@ -80,10 +89,16 @@ if __name__ == '__main__':
                     continue
                 region[0] = chain.DV_Region[idv]
                 pos_DV = TVector3(chain.DV_x[idv], chain.DV_y[idv], chain.DV_z[idv])
+                dv_m[0] = chain.DV_m[idv]
                 dv_r[0] = pos_DV.Perp()
                 dv_z[0] = pos_DV.Z()
                 dv_phi[0] = pos_DV.Phi()
                 dv_eta[0] = pos_DV.Eta()
+                #if chain.DV_nTracks[idv] < 3 or (chain.DV_Region[idv] in [-1, 1, 3, 5, 7, 9]):
+                if chain.DV_nTracks[idv] < 3 or chain.DV_Region[idv] < 0 or chain.DV_m[idv] < 3:
+                #if chain.DV_Region[idv] in [-1, 1, 3, 5, 7, 9]:
+                    continue
+                dv_nTracks[0] = chain.DV_nTracks[idv]
                 tlv_DVPV = TLorentzVector()
                 tlv_DVPV.SetVect(pos_DV - pos_PV)
                 for itrk in range(chain.DV_nTracks[idv]):
