@@ -4,15 +4,15 @@ import sys
 import re
 from datetime import date
 
-try:
-    import ROOT
-    import AtlasStyle
-except ImportError:
-    # on my laptop
-    sys.path.append('/usr/local/root/latest/lib')
-    sys.path.append(BasicConfig.workdir + 'DV_analysisScriptsRun2/')
-    import ROOT
-    import AtlasStyle
+#try:
+import ROOT
+import AtlasStyle
+#except ImportError:
+#    # on my laptop
+#    sys.path.append('/usr/local/root/latest/lib')
+#    sys.path.append(BasicConfig.workdir + 'DV_analysisScriptsRun2/')
+#    import ROOT
+#    import AtlasStyle
 
 import BasicConfig
 import utils
@@ -195,8 +195,9 @@ if __name__ == '__main__':
     #     tf_mc.append(utils.open_tfile(x.rstrip()))
     #     dsid.append(int(re.sub('.*hist_run', '', x)[:6]))
 
-    legend_trigger = ['HLT_xe100_tc_lcw', 'HLT_xe100_tc_lcw_wEFMu',
-                      'HLT_xe100_mht_L1XE50', 'HLT_xe110_mht_L1XE50', 'HLT_xe120_mht_L1XE50']
+    #legend_trigger = ['HLT_xe100_tc_lcw', 'HLT_xe100_tc_lcw_wEFMu',
+    #                  'HLT_xe100_mht_L1XE50', 'HLT_xe110_mht_L1XE50', 'HLT_xe120_mht_L1XE50']
+    legend_trigger = ['HLT_xe110_mht_L1XE50']
 
     key_list_passed_trigger = ['calibMET_' + x + '_SysUnc_MET' for x in legend_trigger]
     key_list_passed_lht = ['calibMET_passed_MET_LHT_' + str(x) + '_SysUnc_MET' for x in range(100, 200, 10)]
@@ -319,7 +320,7 @@ if __name__ == '__main__':
     # superpose_tocs(passed_lht_list[2], total_list[2][0], parameters_lht[2])
     # superpose_tocs(passed_lht_list[3], total_list[3][0], parameters_lht[3])
     # superpose_tocs(passed_lht_list[4], total_list[4][0], parameters_lht[4])
-    # superpose_tocs(passed_lht_list[5], total_list[5][0], parameters_lht[5])
+    superpose_tocs(passed_lht_list[5], total_list[5][0], parameters_lht[5])
     # superpose_tocs(passed_lht_list[6], total_list[6][0], parameters_lht[6])
 
     parameters_met_acc = {'plot_name': 'met_acceptance_2016_run304494',
@@ -334,4 +335,4 @@ if __name__ == '__main__':
                                       'plot_name_ref': 'signal_efficiencies_mc_trackless',
                                       'plot_name_ratio': 'signal_efficiencies_mc_ratio'}
 
-    compare_signal_efficiencies_2d(mc_passed_xe100_lht_list, mc_trackless_list, mc_total_list, dsid, parameters_signal_efficiencies)
+    #compare_signal_efficiencies_2d(mc_passed_xe100_lht_list, mc_trackless_list, mc_total_list, dsid, parameters_signal_efficiencies)
