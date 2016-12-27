@@ -1,5 +1,7 @@
 from ROOT import *
 
+import mc
+
 #isData = False
 isData = True
 isMC = not isData
@@ -31,7 +33,7 @@ v_cutflow = [
             "DV mass"
             ]
 
-dM = ["30","50","80","130","1100"]
+#dM = ["30","50","80","130","1100"]
 #l_met = ["100","110","120","130","140","150"]
 #l_meff = ["1000","1100","1200","1300","1400","1500"]
 
@@ -42,18 +44,17 @@ dM = ["30","50","80","130","1100"]
 #for dsid in range(402715,402720):
 for dsid in range(402700,402740):
             #met = 200
-            mgluino = 600 + 200 * int((dsid - 402700) / 5)
+            #mgluino = 600 + 200 * int((dsid - 402700) / 5)
+            mgluino = mc.parameters[dsid]['g']
+            dM = mgluino - mc.parameters[dsid]['chi0']
     #for met in range(100,101,10):
         #for meff in range(1000,1001,100):
             print "%"
             if isData:
                 #if dsid != 402715:
-                if dsid != 402700:
-                    print "fuck" + str(dsid)
-                    break
-                #tfile = TFile("../submitDir_LSF/all_DVPlusMETCutFlow.root")
-                #tfile = TFile("../output_systTree_PeriodA-I.root")
-                tfile = TFile("../output_systTree_PeriodK-L.root")
+                #tfile = TFile("../plots_maker_systTree_hadd_PeriodA-I.root")
+                #tfile = TFile("../plots_maker_systTree_hadd_PeriodK-L.root")
+                tfile = TFile("../plots_maker_systTree_hadd_PeriodALL_v22.root")
                 print "% cut flow of data"
             elif isMC:
                 #tfile = TFile("../hist/hist_" + str(dsid) + "_" + str(meff) + "_" + str(met) + ".root","open")
@@ -81,7 +82,7 @@ for dsid in range(402700,402740):
                 print "  \\caption{Cut flow table for 2015 data of the DESDM\\_RPVLL stream for DV$+E^\\mathrm{miss}_T$ channel.}"
                 print "  \\label{tab:cutflow_data}"
             elif isMC:
-                print "  \\caption{Cut flow table for MC ($\\mathrm{DSID}=" + str(dsid) + "$, $M_{\\tilde{g}}=" + str(mgluino) + "\\,\\mathrm{[GeV]}$, $dM=" + dM[4-dsid%5] + "\\,\\mathrm{[GeV]}$) for DV$+E^{\\mathrm{miss}}_T$ channel.}"
+                print "  \\caption{Cut flow table for MC ($\\mathrm{DSID}=" + str(dsid) + "$, $M_{\\tilde{g}}=" + str(mgluino) + "\\,\\mathrm{[GeV]}$, $dM=" + dM  + "\\,\\mathrm{[GeV]}$) for DV$+E^{\\mathrm{miss}}_T$ channel.}"
                 print "  \\label{tab:cutflow_dsid" + str(dsid) + "}"
             print "\small"
             print "  \\begin{tabular}{cccc} \\hline"
@@ -119,3 +120,5 @@ for dsid in range(402700,402740):
             print "\\end{center}"
             print "\\end{table}"
             print ""
+            if isData:
+                return

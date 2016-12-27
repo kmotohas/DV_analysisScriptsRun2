@@ -5,15 +5,15 @@ import sys
 import os
 from datetime import date
 
-try:
-    import ROOT
-    import AtlasStyle
-except ImportError:
-    # on my laptop
-    sys.path.append('/usr/local/root/latest/lib')
-    sys.path.append(BasicConfig.workdir + 'DV_analysisScriptsRun2/')
-    import ROOT
-    import AtlasStyle
+#try:
+import ROOT
+import AtlasStyle
+#except ImportError:
+#    # on my laptop
+#    sys.path.append('/usr/local/root/latest/lib')
+#    sys.path.append(BasicConfig.workdir + 'DV_analysisScriptsRun2/')
+#    import ROOT
+#    import AtlasStyle
 
 
 def open_tfile(filepath):
@@ -151,7 +151,7 @@ def overlay_histograms(histograms, legends, parameters):
     canvas = ROOT.TCanvas("c", "c", 1000, 600)
     y_max = histograms[0].GetMaximum() * 2
     y_min = 0.8
-    leg = ROOT.TLegend(0.6, 0.78, 0.88, 0.90)
+    leg = ROOT.TLegend(0.55, 0.7, 0.86, 0.90)
     for ii, (histogram, legend) in enumerate(zip(histograms, legends)):
         print(ii)
         decorate_histogram(histogram, BasicConfig.colors[ii])
@@ -160,6 +160,7 @@ def overlay_histograms(histograms, legends, parameters):
         if ii == 0:
             if 'doNorm' not in parameters:
                 histograms[0].SetMinimum(y_min)
+                histograms[0].SetMaximum(histograms[0].GetMaximum() * 30)
             else:
                 histograms[0].Scale(1./histograms[0].Integral())
                 histograms[0].SetMaximum(histograms[0].GetMaximum() * 1.5)
@@ -350,6 +351,46 @@ def get_region(tree, idv):
     return rIndex
 
 
+def draw_pads(tfile, div_x, div_y, histo_names, file_name):
+    canvas = ROOT.TCanvas('c', 'c', 1000, 800)
+    canvas.Divide(div_x, div_y)
+    h = []
+    for ii, name in enumerate(histo_names):
+        canvas.cd(ii+1).SetLogz()
+        canvas.SetLogz()
+        h.append(tfile.Get(name))
+        h[ii].GetYaxis().SetRangeUser(0, 40)
+        if 'dRDVmass' in h[ii].GetName():
+            h[ii].GetXaxis().SetRangeUser(0, 5)
+        h[ii].Draw('colz')
+    save_as(canvas, '../plots/'+file_name)
+
+
+def rebin(hist, bins_array):
+    new_hist = ROOT.TH1F(hist.GetName()+'_new', ';'+hist.GetXaxis().GetTitle()+';'+hist.GetYaxis().GetTitle(),
+                         len(bins_array)-1, bins_array)
+    x_bin = 1
+    for ii, edge in enumerate(bins_array):
+        if ii == 0:
+            continue
+        bin_content = 0
+        for jj in range(x_bin, hist.FindBin(edge)):
+            bin_content += hist.GetBinContent(jj)
+        new_hist.SetBinContent(ii, bin_content)
+        x_bin = hist.FindBin(edge)
+    # overflow bin
+    new_hist.SetBinContent(len(bins_array), hist.GetBinContent(hist.GetNbinsX()+1))
+    width = new_hist.GetBinWidth(1)
+    for ii in range(new_hist.GetNbinsX()):
+        original = new_hist.GetBinContent(ii+1)
+        new_hist.SetBinContent(ii+1, float(original)*width/new_hist.GetBinWidth(ii+1))
+        error = new_hist.GetBinContent(ii+1)*(original**(-0.5)) if original != 0 else width/new_hist.GetBinWidth(ii+1)
+        #if original == 0:
+        #    print(error)
+        new_hist.SetBinError(ii+1, error)
+    return new_hist
+
+
 def show_progress(entry, entries):
     if entry % 10000 == 0:
         print('*** processed {0} out of {1} ({2:2.1f}%)'.format(entry, entries, float(entry)/entries*100))
@@ -447,52 +488,107 @@ if __name__ == '__main__':
         #parameters = {'file_name': key_list[3], 'legend1': legend1, 'legend2': legend2}
         #draw_distributions_and_ratio(h_group[3], h_central[3], parameters)
 
-    tfile = open_tfile('/Users/kmotohas/work/DisplacedVertices/Run2/all_2016.root')
-    regions = [0, 2, 4, 6, 8, 10, 11]
-    h = [ROOT.TH1F() for _ in regions]
-    for ii, region in enumerate(regions):
-        tfile.GetObject('BkgEst_data_2Trk_Region{}_DVMultiTrkBkg'.format(region), h[ii])
-    legends = ['Data 2-track DV Region'+str(region) for region in regions]
-    parameters = {'plot_name': '2Trk_DV_mass', 'label': 'data16_13TeV', 'x_max': 50}
+    tfile = open_tfile('/Users/kmotohas/work/DisplacedVertices/Run2/MassTemplates_systTree_ALL_v13.root')
+    #regions = [0, 2, 4, 6, 8, 10, 11]
+    models = ['Cross_Angle', 'Cross_DeltaR', 'CrossDeltaPhiAngle', 'CrossDeltaPhiDeltaR', 'CrossDeltaPhiDeltaR_th10',
+              'CrossDeltaAngle', 'CrossDeltaDeltaR', ]
+    models.append('data')
+    h = [ROOT.TH1F() for _ in models]
+    for ii, model in enumerate(models):
+        tfile.GetObject('BkgEst_{}_3Trk_Region0'.format(model), h[ii])
+    legends = [model for model in models]
+    parameters = {'plot_name': '3Trk_Region0_models', 'label': 'data16_13TeV', 'x_max': 50}
     overlay_histograms(h, legends, parameters)
+    #h = [ROOT.TH1F() for _ in regions]
+    #for ii, region in enumerate(regions):
+    #    tfile.GetObject('BkgEst_data_2Trk_Region{}'.format(region), h[ii])
+    #legends = ['Data 2-track DV Region'+str(region) for region in regions]
+    #parameters = {'plot_name': '2Trk_DV_mass', 'label': 'data16_13TeV', 'x_max': 50}
+    #overlay_histograms(h, legends, parameters)
 
-    for ii, region in enumerate(regions):
-        tfile.GetObject('BkgEst_data_3Trk_Region{}_DVMultiTrkBkg'.format(region), h[ii])
-    legends = ['Data 3-track DV Region'+str(region) for region in regions]
-    parameters = {'plot_name': '3Trk_DV_mass', 'label': 'data16_13TeV', 'x_max': 20}
-    overlay_histograms(h, legends, parameters)
+    #for ii, region in enumerate(regions):
+    #    tfile.GetObject('BkgEst_data_3Trk_Region{}'.format(region), h[ii])
+    #legends = ['Data 3-track DV Region'+str(region) for region in regions]
+    #parameters = {'plot_name': '3Trk_DV_mass', 'label': 'data16_13TeV', 'x_max': 20}
+    #overlay_histograms(h, legends, parameters)
 
-    for ii, region in enumerate(regions):
-        tfile.GetObject('TrkProp_Pt_Region{}_DVMultiTrkBkg'.format(region), h[ii])
-    legends = ['Track Pt Region'+str(region) for region in regions]
-    parameters = {'plot_name': 'TrkProp_Pt', 'label': 'data16_13TeV',
-                  'doNorm': True}
-    overlay_histograms(h, legends, parameters)
+    #tfile = open_tfile('/Users/kmotohas/work/DisplacedVertices/Run2/all_2016.root')
+    #for ii, region in enumerate(regions):
+    #    tfile.GetObject('TrkProp_Pt_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    #legends = ['Track Pt Region'+str(region) for region in regions]
+    #parameters = {'plot_name': 'TrkProp_Pt', 'label': 'data16_13TeV',
+    #              'doNorm': True}
+    #overlay_histograms(h, legends, parameters)
 
-    for ii, region in enumerate(regions):
-        tfile.GetObject('TrkProp_Eta_Region{}_DVMultiTrkBkg'.format(region), h[ii])
-    legends = ['Track Eta Region'+str(region) for region in regions]
-    parameters = {'plot_name': 'TrkProp_Eta', 'label': 'data16_13TeV',
-                  'noLogy': 0, 'doNorm': True}
-    overlay_histograms(h, legends, parameters)
+    #for ii, region in enumerate(regions):
+    #    tfile.GetObject('TrkProp_Eta_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    #legends = ['Track Eta Region'+str(region) for region in regions]
+    #parameters = {'plot_name': 'TrkProp_Eta', 'label': 'data16_13TeV',
+    #              'noLogy': 0, 'doNorm': True}
+    #overlay_histograms(h, legends, parameters)
 
-    for ii, region in enumerate(regions):
-        tfile.GetObject('TrkProp_dEta_Region{}_DVMultiTrkBkg'.format(region), h[ii])
-    legends = ['Track dEta Region'+str(region) for region in regions]
-    parameters = {'plot_name': 'TrkProp_dEta', 'label': 'data16_13TeV',
-                  'noLogy': 0, 'doNorm': True}
-    overlay_histograms(h, legends, parameters)
+    #for ii, region in enumerate(regions):
+    #    tfile.GetObject('TrkProp_dEta_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    #legends = ['Track dEta Region'+str(region) for region in regions]
+    #parameters = {'plot_name': 'TrkProp_dEta', 'label': 'data16_13TeV',
+    #              'noLogy': 0, 'doNorm': True}
+    #overlay_histograms(h, legends, parameters)
 
-    for ii, region in enumerate(regions):
-        tfile.GetObject('TrkProp_Phi_Region{}_DVMultiTrkBkg'.format(region), h[ii])
-    legends = ['Track Phi Region'+str(region) for region in regions]
-    parameters = {'plot_name': 'TrkProp_Phi', 'label': 'data16_13TeV',
-                  'noLogy': 0, 'doNorm': True}
-    overlay_histograms(h, legends, parameters)
+    #for ii, region in enumerate(regions):
+    #    tfile.GetObject('TrkProp_Phi_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    #legends = ['Track Phi Region'+str(region) for region in regions]
+    #parameters = {'plot_name': 'TrkProp_Phi', 'label': 'data16_13TeV',
+    #              'noLogy': 0, 'doNorm': True}
+    #overlay_histograms(h, legends, parameters)
 
-    for ii, region in enumerate(regions):
-        tfile.GetObject('TrkProp_dPhi_Region{}_DVMultiTrkBkg'.format(region), h[ii])
-    legends = ['Track dPhi Region'+str(region) for region in regions]
-    parameters = {'plot_name': 'TrkProp_dPhi', 'label': 'data16_13TeV',
-                  'noLogy': 0, 'doNorm': True}
-    overlay_histograms(h, legends, parameters)
+    #for ii, region in enumerate(regions):
+    #    tfile.GetObject('TrkProp_dPhi_Region{}_DVMultiTrkBkg'.format(region), h[ii])
+    #legends = ['Track dPhi Region'+str(region) for region in regions]
+    #parameters = {'plot_name': 'TrkProp_dPhi', 'label': 'data16_13TeV',
+    #              'noLogy': 0, 'doNorm': True}
+    #overlay_histograms(h, legends, parameters)
+
+
+    #tfile = open_tfile('/Users/kmotohas/work/DisplacedVertices/Run2/MassTemplates_systTree_ALL_v11.root')
+    ##for region in [0, 2, 4, 6, 8, 10, 11]:
+    ##    histo_names = ['AvgAngleDVmass_3Trk_Region'+str(region),
+    ##                   'maxAngleDVmass_3Trk_Region'+str(region),
+    ##                   'dRDVmass_3Trk_Region'+str(region),
+    ##                   'dEtaDVmass_3Trk_Region'+str(region),
+    ##                   ]
+    ##    draw_pads(tfile, div_x=2, div_y=2, histo_names=histo_names, file_name='AngleDVmass_3Trk_Region'+str(region))
+    #hist = tfile.Get('BkgEst_data_4Trk_Region11')
+    #rebins = [round(x * 0.1, 1) for x in range(0, 40, 2)]
+    #for x in range(40, 81, 4):
+    #    rebins.append(round(x * 0.1, 1))
+    ## for x in range(150, 201, 8):
+    ##    rebins.append(round(x * 0.1, 1))
+    ##rebins.append(8.6)
+    ##rebins.append(9.2)
+    #rebins.append(9.)
+    ## rebins.append(9.5)
+    #rebins.append(10.)
+    ## rebins.append(10.5)
+    ##rebins.append(11.)
+    #rebins.append(12.)
+    ##rebins.append(13.)
+    ## rebins.append(11.5)
+    ## rebins.append(12)
+    ##rebins.append(14.)
+    #rebins.append(15.)
+    ## rebins.append(14)
+    ## rebins.append(15)
+    ##rebins.append(17.)
+    ## rebins.append(18.)
+    #rebins.append(20.)
+    ##rebins.append(25.)
+    #rebins.append(30.)
+    #rebins.append(40.)
+    #rebins.append(50.)
+    #rebins.append(70.)
+    #rebins.append(100.)
+    #import array
+    #bins_array = array.array('d', rebins)
+    #new_hist = rebin(hist, bins_array)
+    #new_hist.Draw()
+
