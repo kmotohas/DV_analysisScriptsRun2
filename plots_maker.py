@@ -9,6 +9,7 @@ parser.add_argument('-o', '--outputFile', type=str, help='output file name')
 args = parser.parse_args()
 
 import mc
+import utils
 
 #input_files = args.inputFiles.split(',')
 #print('*** input files: ')
@@ -19,36 +20,34 @@ import mc
 #output_root = TFile(args.outputFile, 'recreate')
 
 
-def pass_event_cut(tree, cut_level):
-    # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
-    #  5: PV, 6: MET, 7: DV Selection]
-    event_cuts = [tree.PassCut1, tree.PassCut2, tree.PassCut3, tree.PassCut4,
-                  tree.PassCut5, tree.PassCut6, tree.PassCut7]
-    passed_or_not = True
-    for cut in event_cuts[:cut_level]:
-        passed_or_not &= cut
-    return passed_or_not
+def get_index_of_leading_jet(tree):
+    idx_leading = -1
+    pt_leading = -1000
+    for idx, jet_pt in enumerate(tree.Jet_pT):
+        print(idx, jet_pt)
+        if jet_pt > pt_leading:
+            pt_leading = jet_pt
+            idx_leading = idx
+    return idx_leading
 
 
-def basic_event_selection(tree):
-    # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
-    #  5: PV, 6: MET, 7: DV Selection]
-    return tree.PassCut3 and tree.PassCut4 and tree.PassCut5
-
-
-def basic_dv_selection(tree, idv):
-    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv]
-    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto[idv]
+def PassNCBVeto(tree):
+    if tree.Jet_n > 0:
+        return (tree.Jet_EMFrac[0] < 0.96 and tree.Jet_FracSamplingMax[0] < 0.8)
+    else:
+        return True
 
 
 def get_lifetime_weight(tree, ctau, ctau_MC):
     if len(tree.Rhadron_properdecaytime) != 2:
         #print('vector size of Rhadron_properdecaytime is not 2. return weight=0.')
-        return 0
-    dt1 = tree.Rhadron_properdecaytime[0] * 1e-3  # [ms]->[s]
-    dt2 = tree.Rhadron_properdecaytime[1] * 1e-3  # [ms]->[s]
-    tau = ctau / TMath.C()
-    tau_MC = ctau_MC / TMath.C()
+        return 1
+    dt1 = tree.Rhadron_properdecaytime[0] * 1e-9  # [ns]->[s]
+    dt2 = tree.Rhadron_properdecaytime[1] * 1e-9  # [ns]->[s]
+    #dt1 = tree.Rhadron_properdecaytime[0]  # [ns]
+    #dt2 = tree.Rhadron_properdecaytime[1]  # [ns]
+    tau = ctau / TMath.C()  # target
+    tau_MC = ctau_MC / TMath.C()  # lifetime of input MC
     weight_rhad1 = tau_MC/tau * TMath.Exp(dt1/tau_MC - dt1/tau)
     weight_rhad2 = tau_MC/tau * TMath.Exp(dt2/tau_MC - dt2/tau)
     return weight_rhad1 * weight_rhad2
@@ -56,10 +55,24 @@ def get_lifetime_weight(tree, ctau, ctau_MC):
 
 def fill_DVmass_Ntrk(tree, histogram, idv, ew, doMatVeto=False):
     #for idv in range(len(tree.DV_x)):
-    if basic_dv_selection(tree, idv):
-        if doMatVeto and not tree.DV_passMatVeto[idv]:
-            return
+    if utils.basic_dv_selection(tree, idv, doMatVeto):
+        #if doMatVeto and not tree.DV_passMatVeto[idv]:
+        #if doMatVeto and not tree.DV_passMatVeto2016[idv]:
+        #if doMatVeto and not tree.DV_passMatVeto2p1[idv]:
+        #if doMatVeto and not tree.DV_passMatVetoRebinned[idv]:
+        #    return
         histogram.Fill(tree.DV_nTracks[idv], tree.DV_m[idv], ew)
+
+
+def match(tree, idv, cut=1.0):
+    from math import sqrt
+    for irh in range(len(tree.Rhadron_vtx_x)):
+        dr = sqrt( (tree.DV_x[idv]-tree.Rhadron_vtx_x[irh])**2.0 
+                 + (tree.DV_y[idv]-tree.Rhadron_vtx_y[irh])**2.0 )
+        dL = sqrt( dr**2.0 + (tree.DV_z[idv]-tree.Rhadron_vtx_z[irh])**2.0) 
+        if dL < cut:
+            return True
+    return False
 
 
 if __name__ == '__main__':
@@ -80,8 +93,10 @@ if __name__ == '__main__':
     #isMC = True
     
     # histogram bins
-    cut_flow_ev = ['Initial', 'Trigger', 'Filter', 'Cleaning', 'GRL', 'PV', 'MET', 'DV Selection']
-    cut_flow_dv = ['Reco DVs', 'Event Selection', 'Fiducial Volume', 'Chi2/ndof', 'Displacement', 'Material Veto', 'N Tracks', 'DV Mass']
+    #cut_flow_ev = ['Initial', 'Trigger', 'Filter', 'Cleaning', 'GRL', 'PV', 'MET', 'DV Selection']
+    cut_flow_ev = ['Initial', 'Trigger', 'Filter', 'Cleaning', 'GRL', 'PV', 'NCB Veto', 'MET', 'DV Selection']
+    #cut_flow_dv = ['Reco DVs', 'Event Selection', 'Fiducial Volume', 'Chi2/ndof', 'Displacement', 'Material Veto', 'N Tracks', 'DV Mass']
+    cut_flow_dv = ['Reco DVs', 'Event Selection', 'Fiducial Volume', 'Chi2/ndof', 'Displacement', 'Material Veto', 'Disabled Module', 'N Tracks', 'DV Mass']
     # define histograms
     h_cut_flow_ev = TH1F('cut_flow_event', ';;Number of Events', len(cut_flow_ev), 0, len(cut_flow_ev))
     h_cut_flow_dv = TH1F('cut_flow_dv', ';;Number of Vertices', len(cut_flow_dv), 0, len(cut_flow_dv))
@@ -94,23 +109,36 @@ if __name__ == '__main__':
     h_MET_3trk = TH1F('MET_3Ntrk', ';MET [GeV]', 100, 0, 500)
     h_MET_4trk = TH1F('MET_4Ntrk', ';MET [GeV]', 100, 0, 500)
     h_MET_hiNtrk = TH1F('MET_hiNtrk', ';MET [GeV]', 100, 0, 500)
-    h_DVmass_Ntrk_MatVeto = TH2F('DVmass_Ntrk_MatVeto', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 500, 0, 100)
-    h_DVmass_Ntrk_MatVeto_MET220 = TH2F('DVmass_Ntrk_MatVeto_MET220', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 500, 0, 100)
-    h_DVmass_Ntrk_MatVeto_MET250 = TH2F('DVmass_Ntrk_MatVeto_MET250', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 500, 0, 100)
+    h_MET_MET_LHT = TH2F('MET_MET_LHT', ';MET [GeV];MET LocHadTopo [GeV]', 200, 0, 1000, 200, 0, 1000)
+    #h_MET_Phi = TH1F('MET_loNtrk', ';MET [GeV]', 100, 0, 500)
+    h_DVmass_Ntrk_MatVeto = TH2F('DVmass_Ntrk_MatVeto', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 1500, 0, 300)
+    h_DVmass_Ntrk_MatVeto_MET220 = TH2F('DVmass_Ntrk_MatVeto_MET220', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 1500, 0, 300)
+    h_DVmass_Ntrk_MatVeto_MET250 = TH2F('DVmass_Ntrk_MatVeto_MET250', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 1500, 0, 300)
+    h_DVmass_Ntrk_MatVeto_passALL = TH2F('DVmass_Ntrk_MatVeto_passALL', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 1500, 0, 300)
+    h_DVmass_Ntrk_MatVeto_passALL_NCB = TH2F('DVmass_Ntrk_MatVeto_passALL_NCB', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 1500, 0, 300)
+    h_DVmass_Ntrk_MatVeto_passALL_NCBveto = TH2F('DVmass_Ntrk_MatVeto_passALL_NCBveto', ';Number of Tracks;DV Mass [GeV]', 50, 0, 50, 1500, 0, 300)
     h_DVmass_Ntrk_Region = [[TH1F() for _ in range(12)] for __ in range(8)]
     h_DVmass_Ntrk_Sum = [TH1F() for __ in range(8)]
     h_DVmass_Ntrk_Region_loMET = [[TH1F() for _ in range(12)] for __ in range(8)]
     h_DVmass_Ntrk_Region_hiMET = [[TH1F() for _ in range(12)] for __ in range(8)]
     h_DVxy = TH2F('DVxy', ';x [mm];y [mm]', 600, -300, 300, 600, -300, 300)
+    h_DVrz = TH2F('DVrz', ';z [mm];r [mm]', 150, -300, 300, 300, 0, 300)
+    h_DVrphi = TH2F('DVrphi', ';#phi [rad];r [mm]', 836, -TMath.Pi(), TMath.Pi(), 300, 0, 300)
+    h_DVxy_matRich = TH2F('DVxy_matRich', ';x [mm];y [mm]', 600, -300, 300, 600, -300, 300)
+    h_DVrz_matRich = TH2F('DVrz_matRich', ';z [mm];r [mm]', 150, -300, 300, 300, 0, 300)
+    h_DVrphi_matRich = TH2F('DVrphi_matRich', ';#phi [rad];r [mm]', 836, -TMath.Pi(), TMath.Pi(), 300, 0, 300)
     h_DVxy_matVeto = TH2F('DVxy_matVeto', ';x [mm];y [mm]', 600, -300, 300, 600, -300, 300)
     h_DVxy_matVeto_10GeV = TH2F('DVxy_matVeto_10GeV', ';x [mm];y [mm]', 600, -300, 300, 600, -300, 300)
     h_DVxy_matVeto_10GeV_no2Trk = TH2F('DVxy_matVeto_10GeV_no2Trk', ';x [mm];y [mm]', 600, -300, 300, 600, -300, 300)
+    h_DVrz_matVeto = TH2F('DVrz_matVeto', ';z [mm];r [mm]', 150, -300, 300, 300, 0, 300)
     h_DVrz_matVeto_10GeV = TH2F('DVrz_matVeto_10GeV', ';z [mm];r [mm]', 150, -300, 300, 300, 0, 300)
     h_DVrz_matVeto_10GeV_no2Trk = TH2F('DVrz_matVeto_10GeV_no2Trk', ';z [mm];r [mm]', 150, -300, 300, 300, 0, 300)
+    h_DVrphi_matVeto = TH2F('DVrphi_matVeto', ';#phi [rad];r [mm]', 836, -TMath.Pi(), TMath.Pi(), 300, 0, 300)
     h_DVrphi_matVeto_10GeV = TH2F('DVrphi_matVeto_10GeV', ';#phi [rad];r [mm]', 836, -TMath.Pi(), TMath.Pi(), 300, 0, 300)
     h_DVrphi_matVeto_10GeV_no2Trk = TH2F('DVrphi_matVeto_10GeV_no2Trk', ';#phi [rad];r [mm]', 836, -TMath.Pi(), TMath.Pi(), 300, 0, 300)
     h_mu = TH1F('mu', ';Mean Number of Interactions per Crossing', 50, 0, 50)
     h_mu_pileupWeight = TH1F('mu_pileupWeight', ';Mean Number of Interactions per Crossing', 50, 0, 50)
+    m_nEvents_base = TH1F('nEvents_base', ';;Number of Events', 1, 0, 1)
     for ntrk in range(2, 8):
         h_DVmass_Ntrk_Sum[ntrk] = TH1F('BkgEst_data_{0}Trk'.format(ntrk), ';Invariant Mass [GeV]', 500, 0, 100)
         for reg in range(12):
@@ -123,29 +151,40 @@ if __name__ == '__main__':
         h_cut_flow_dv.GetXaxis().SetBinLabel(bin+1, cut)
     #
     m_MET_min = 250
-    
+
     n_reweight_steps = 50
     xmin = 1.
     xmax = 10000.
-    ratio = xmax/xmin
-    bins = []
-    for ii in range(n_reweight_steps):
-        bins.append(xmax * 10**(ii*TMath.Log10(ratio)/n_reweight_steps-TMath.Log10(ratio)))
+    ratio = float(xmax)/xmin
+    import math
+    #print(n_reweight_steps, xmin, xmax, ratio)
+    ibins = [1.]
+    #print(ibins)
+    for ii in range(1, n_reweight_steps):
+        #print(ibins)
+        ibins.append(xmax * 10**(ii * TMath.Log10(xmax/xmin) / n_reweight_steps - TMath.Log10(xmax/xmin) ))
+        #print(locals())
+        #print(globals())
+        #print math.log10(10000.)
+        #print float(xmax * math.pow(10, ii * math.log10(ratio) / n_reweight_steps - math.log10(ratio) ))
+        #ibins.append(float(xmax * math.pow(10, ii * math.log10(ratio) / n_reweight_steps - math.log10(ratio) )))
     #n_passed_w1 = [0. for _ in range(n_reweight_steps)]
     #n_passed = [0. for _ in range(n_reweight_steps)]
     from array import array
-    limitsLifetime = array('d', bins)
-    n_passed = TH1F('n_passed', ';c#tau [mm]; Event-level efficiency', len(limitsLifetime)-1, limitsLifetime)
+    limitsLifetime = array('d', ibins)
+    #n_passed = TH1F('n_passed', ';c#tau [mm]; Event-level efficiency', len(limitsLifetime)-1, limitsLifetime)
     #n_total_w1 = [0. for _ in range(n_reweight_steps)]
     #n_total = [0. for _ in range(n_reweight_steps)]
-    n_total = TH1F('n_total', ';c#tau [mm]; Event-level efficiency', len(limitsLifetime)-1, limitsLifetime)
+    #n_total = TH1F('n_total', ';c#tau [mm]; Event-level efficiency', len(limitsLifetime)-1, limitsLifetime)
+    tefficiency = TEfficiency('tefficiency', ';c#tau [mm]; Event-level efficiency', len(limitsLifetime)-1, limitsLifetime)
 
     entries = chain.GetEntries()
     print('* Number of entries = {}'.format(entries))
     try:
         for entry in range(entries):
-            if not entry % 100000:
-                print('*** processed {0} out of {1} ({2}%)'.format(entry, entries, round(float(entry)/entries*100., 1)))
+            #if not entry % 100000:
+            #    print('*** processed {0} out of {1} ({2}%)'.format(entry, entries, round(float(entry)/entries*100., 1)))
+            utils.show_progress(entry, entries)
             #if entry == 100000:
             #    break
             # get the next tree in the chain and verify
@@ -164,23 +203,37 @@ if __name__ == '__main__':
 
             # lifetime reweighting
             if chain.McChannelNumber > 400000:
-                pass_all = pass_event_cut(chain, 7)
+                pass_all = utils.pass_event_cut(chain, 8)
+                if pass_all:
+                    matched = False
+                    for idv in range(len(chain.DV_x)):
+                        matched = matched or match(chain, idv, cut=1.0)
+                    #print('pass_all is ', pass_all, ', matched is ', matched)
+                    pass_all = pass_all and matched
+
                 ctau_MC = TMath.C() * mc.parameters[chain.McChannelNumber]['t'] * 1e-9  # [nm]->[m]
+                #ctau_MC = TMath.C() * mc.parameters[chain.McChannelNumber]['t']  # [nm]
                 for step in range(n_reweight_steps):
                     #target_ctau = TMath.Power(300., step/float(n_reweight_steps-1)) * 1e-3  # [mm]->[m]
-                    target_ctau = xmax * 10**(step*TMath.Log10(ratio)/n_reweight_steps-TMath.Log10(ratio)) * 1e-3 # [mm]->[m]
+                    target_ctau = xmax * 10**(step*TMath.Log10(xmax/xmin)/n_reweight_steps-TMath.Log10(xmax/xmin)) * 1e-3 # [mm]->[m]
+                    #target_ctau = xmax * 10**(step*TMath.Log10(ratio)/n_reweight_steps-TMath.Log10(ratio)) * 1e6 # [mm]->[nm]
                     #print(target_ctau*1e3)
                     lifetime_weight = get_lifetime_weight(chain, target_ctau, ctau_MC)
-                    if pass_all:
+                    #print(lifetime_weight)
+                    #if pass_all:
                         #n_passed_w1[step] += 1.
                         #n_passed[step] += event_weight * lifetime_weight
-                        n_passed.Fill(target_ctau*1e3, event_weight * lifetime_weight)
+                        #n_passed.Fill(target_ctau*1e3, event_weight * lifetime_weight)
+
                     #n_total_w1[step] += 1.
                     #n_total[step] += event_weight * lifetime_weight
-                    n_total.Fill(target_ctau*1e3, event_weight * lifetime_weight)
+                    #n_total.Fill(target_ctau*1e3, event_weight * lifetime_weight)
+                    tefficiency.FillWeighted(pass_all, event_weight*lifetime_weight, target_ctau*1e3)
+                    #tefficiency.FillWeighted(pass_all, event_weight*lifetime_weight, target_ctau*1e-6)
 
             max_ntrk = 0
-            if basic_event_selection(chain):
+            if utils.basic_event_selection(chain):
+                m_nEvents_base.Fill(0.5, event_weight)
                 for idv in range(len(chain.DV_x)):
                     fill_DVmass_Ntrk(chain, h_DVmass_Ntrk, idv, event_weight)
                     fill_DVmass_Ntrk(chain, h_DVmass_Ntrk_MatVeto, idv, event_weight, doMatVeto=True)
@@ -189,12 +242,12 @@ if __name__ == '__main__':
                     if chain.MET > 250:
                         fill_DVmass_Ntrk(chain, h_DVmass_Ntrk_MatVeto_MET250, idv, event_weight, doMatVeto=True)
                     #if basic_dv_selection(chain, idv) and chain.DV_nTracks[idv] < 7 and chain.DV_Region[idv] >= 0:
-                    if basic_dv_selection(chain, idv) and chain.DV_Region[idv] >= 0:
+                    #if basic_dv_selection(chain, idv) and chain.DV_passMatVeto2p1[idv] and chain.DV_Region[idv] >= 0:
+                    if utils.basic_dv_selection(chain, idv) and chain.DV_Region[idv] >= 0:
                         ntrk = chain.DV_nTracks[idv] if chain.DV_nTracks[idv] < 7 else 7
                         max_ntrk = ntrk if ntrk > max_ntrk else max_ntrk
                         #if chain.DV_Region[idv] in [0, 2, 4, 6, 8, 10, 11]:
-                        if chain.DV_Region[idv] >= 0:
-                            h_DVmass_Ntrk_Sum[ntrk].Fill(chain.DV_m[idv], event_weight)
+                        h_DVmass_Ntrk_Sum[ntrk].Fill(chain.DV_m[idv], event_weight)
                         h_DVmass_Ntrk_Region[ntrk][chain.DV_Region[idv]].Fill(chain.DV_m[idv], event_weight)
                         if chain.MET < m_MET_min:
                             h_DVmass_Ntrk_Region_loMET[ntrk][chain.DV_Region[idv]].Fill(chain.DV_m[idv], event_weight)
@@ -204,18 +257,34 @@ if __name__ == '__main__':
                         else:
                             h_DVmass_Ntrk_Region_hiMET[ntrk][chain.DV_Region[idv]].Fill(chain.DV_m[idv], event_weight)
                             h_Ntrk_hiMET.Fill(chain.DV_nTracks[idv], event_weight)
-                    if basic_dv_selection(chain, idv):
-                        h_DVxy.Fill(chain.DV_x[idv], chain.DV_y[idv])
-                        if chain.DV_passMatVeto[idv]:
-                            h_DVxy_matVeto.Fill(chain.DV_x[idv], chain.DV_y[idv])
+                    if utils.basic_dv_selection(chain, idv, doMatVeto=False):
+                        x = chain.DV_x[idv]
+                        y = chain.DV_y[idv]
+                        z = chain.DV_z[idv]
+                        r = chain.DV_r[idv]
+                        phi = TMath.ATan2(y, x)
+                        h_DVxy.Fill(x, y)
+                        h_DVrz.Fill(z, r)
+                        h_DVrphi.Fill(phi, r)
+                        #if chain.DV_passMatVeto[idv]:
+                        #if chain.DV_passMatVeto2016[idv]:
+                        if chain.DV_passMatVeto2p1[idv]:
+                        #if chain.DV_passMatVetoRebinned[idv]:
+                            h_DVxy_matVeto.Fill(x, y)
+                            h_DVrz_matVeto.Fill(z, r)
+                            h_DVrphi_matVeto.Fill(phi, r)
                             if chain.DV_m[idv] > 10:
-                                h_DVxy_matVeto_10GeV.Fill(chain.DV_x[idv], chain.DV_y[idv])
-                                h_DVrz_matVeto_10GeV.Fill(chain.DV_z[idv], chain.DV_r[idv])
-                                h_DVrphi_matVeto_10GeV.Fill(TMath.ATan2(chain.DV_y[idv], chain.DV_x[idv]), chain.DV_r[idv])
+                                h_DVxy_matVeto_10GeV.Fill(x, y)
+                                h_DVrz_matVeto_10GeV.Fill(z, r)
+                                h_DVrphi_matVeto_10GeV.Fill(phi, r)
                                 if chain.DV_nTracks[idv] > 2:
-                                    h_DVxy_matVeto_10GeV_no2Trk.Fill(chain.DV_x[idv], chain.DV_y[idv])
-                                    h_DVrz_matVeto_10GeV_no2Trk.Fill(chain.DV_z[idv], chain.DV_r[idv])
-                                    h_DVrphi_matVeto_10GeV_no2Trk.Fill(TMath.ATan2(chain.DV_y[idv], chain.DV_x[idv]), chain.DV_r[idv])
+                                    h_DVxy_matVeto_10GeV_no2Trk.Fill(x, y)
+                                    h_DVrz_matVeto_10GeV_no2Trk.Fill(z, r)
+                                    h_DVrphi_matVeto_10GeV_no2Trk.Fill(phi, r)
+                        else:  # not pass material veto
+                            h_DVxy_matRich.Fill(x, y)
+                            h_DVrz_matRich.Fill(z, r)
+                            h_DVrphi_matRich.Fill(phi, r)
             if max_ntrk < 5:
                 h_MET_loNtrk.Fill(chain.MET, event_weight)
                 if max_ntrk == 4:
@@ -226,6 +295,8 @@ if __name__ == '__main__':
                     h_MET_2trk.Fill(chain.MET, event_weight)
             else:
                 h_MET_hiNtrk.Fill(chain.MET, event_weight)
+
+            h_MET_MET_LHT.Fill(chain.MET, chain.MET_LHT, event_weight)
 
             ##############
             # Cut Flow
@@ -244,32 +315,39 @@ if __name__ == '__main__':
             #else:
             #    if not (chain.MET_LHT > 180.):
             #        continue
-            if not chain.PassCut2:
+            #if not chain.PassCut2:
+            if not chain.PassMETFilter:
                 continue
             h_cut_flow_ev.Fill('Filter', event_weight)
-            # cleaning
-            if not chain.PassCut3:
-                continue
-            h_cut_flow_ev.Fill('Cleaning', event_weight)
             # GRL
-            if not chain.PassCut4:
+            if not chain.PassGRL:
                 continue
             h_cut_flow_ev.Fill('GRL', event_weight)
+            # cleaning
+            if not chain.PassEventCleaning:
+                continue
+            h_cut_flow_ev.Fill('Cleaning', event_weight)
             # PV
-            if not chain.PassCut5:
+            if not chain.PassPVCuts:
                 continue
             h_cut_flow_ev.Fill('PV', event_weight)
+            # NCB Veto
+            #if not PassNCBVeto(chain):
+            if not chain.PassNCBCuts:
+                continue
+            h_cut_flow_ev.Fill('NCB Veto', event_weight)
             # MET
-            #if chain.RunNumber < 309000:
-            #    if not (chain.MET > 250):
-            #        continue
-            #else: 
-            #    if not (chain.MET > 250):
-            #        continue
-            if chain.MET < 250:
+            #if not chain.PassCut6:
+            if not chain.PassMETCut:
                 continue
             h_cut_flow_ev.Fill('MET', event_weight)
             h_cut_flow_dv.Fill('Event Selection', len(chain.DV_x)*event_weight)
+            for idv in range(len(chain.DV_x)):
+                fill_DVmass_Ntrk(chain, h_DVmass_Ntrk_MatVeto_passALL, idv, event_weight, doMatVeto=True)
+                if abs(chain.MET_phi) < 0.3 or abs(chain.MET_phi) > 2.7:
+                    fill_DVmass_Ntrk(chain, h_DVmass_Ntrk_MatVeto_passALL_NCB, idv, event_weight, doMatVeto=True)
+                else:
+                    fill_DVmass_Ntrk(chain, h_DVmass_Ntrk_MatVeto_passALL_NCBveto, idv, event_weight, doMatVeto=True)
             ############ 
             # dv loop
             ############ 
@@ -288,9 +366,16 @@ if __name__ == '__main__':
                     continue
                 h_cut_flow_dv.Fill('Displacement', event_weight)
                 # Material veto
-                if not chain.DV_passMatVeto[idv]:
+                #if not chain.DV_passMatVeto[idv]:
+                #if not chain.DV_passMatVeto2016[idv]:
+                if not chain.DV_passMatVeto2p1[idv]:
+                #if not chain.DV_passMatVetoRebinned[idv]:
                     continue
                 h_cut_flow_dv.Fill('Material Veto', event_weight)
+                # Disabled module veto
+                if not chain.DV_passDisabledModuleVeto[idv]:
+                    continue
+                h_cut_flow_dv.Fill('Disabled Module', event_weight)
                 # N tracks
                 if not chain.DV_passNtrkCut[idv]:
                     continue
@@ -299,7 +384,10 @@ if __name__ == '__main__':
                 if not chain.DV_passMassCut[idv]:
                     continue
                 h_cut_flow_dv.Fill('DV Mass', event_weight)
-                have_signal_like_dv = True
+                if chain.McChannelNumber < 400000:
+                    have_signal_like_dv = True
+                else:
+                    have_signal_like_dv = have_signal_like_dv or match(chain, idv, cut=1.0)
             if have_signal_like_dv:
                 h_cut_flow_ev.Fill('DV Selection', event_weight)
     except KeyboardInterrupt:
@@ -317,6 +405,9 @@ if __name__ == '__main__':
     h_DVmass_Ntrk_MatVeto.Write()
     h_DVmass_Ntrk_MatVeto_MET220.Write()
     h_DVmass_Ntrk_MatVeto_MET250.Write()
+    h_DVmass_Ntrk_MatVeto_passALL.Write()
+    h_DVmass_Ntrk_MatVeto_passALL_NCB.Write()
+    h_DVmass_Ntrk_MatVeto_passALL_NCBveto.Write()
     h_Ntrk_loMET.Write()
     h_Ntrk_hiMET.Write()
     h_Ntrk_loMET_gt100GeV.Write()
@@ -325,6 +416,7 @@ if __name__ == '__main__':
     h_MET_2trk.Write()
     h_MET_3trk.Write()
     h_MET_4trk.Write()
+    h_MET_MET_LHT.Write()
     for ntrk in range(2, 8):
         h_DVmass_Ntrk_Sum[ntrk].Write()
         for reg in range(12):
@@ -332,7 +424,14 @@ if __name__ == '__main__':
             h_DVmass_Ntrk_Region_loMET[ntrk][reg].Write()
             h_DVmass_Ntrk_Region_hiMET[ntrk][reg].Write()
     h_DVxy.Write()
+    h_DVrz.Write()
+    h_DVrphi.Write()
     h_DVxy_matVeto.Write()
+    h_DVrz_matVeto.Write()
+    h_DVrphi_matVeto.Write()
+    h_DVxy_matRich.Write()
+    h_DVrz_matRich.Write()
+    h_DVrphi_matRich.Write()
     h_DVxy_matVeto_10GeV.Write()
     h_DVrz_matVeto_10GeV.Write()
     h_DVrphi_matVeto_10GeV.Write()
@@ -341,11 +440,13 @@ if __name__ == '__main__':
     h_DVrphi_matVeto_10GeV_no2Trk.Write()
     h_mu.Write()
     h_mu_pileupWeight.Write()
-    n_passed.Write()
-    n_total.Write()
-    tg = TGraphAsymmErrors(n_passed, n_total)
-    tg.SetName('efficiency')
-    tg.GetXaxis().SetTitle('c#tau [mm]')
-    tg.GetYaxis().SetTitle('Event-level efficiency')
-    tg.Write()
+    m_nEvents_base.Write()
+    #n_passed.Write()
+    #n_total.Write()
+    tefficiency.Write()
+    #tg = TGraphAsymmErrors(n_passed, n_total)
+    #tg.SetName('efficiency')
+    #tg.GetXaxis().SetTitle('c#tau [mm]')
+    #tg.GetYaxis().SetTitle('Event-level efficiency')
+    #tg.Write()
     output_root.Close()

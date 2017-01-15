@@ -17,6 +17,11 @@ import AtlasStyle
 
 
 def open_tfile(filepath):
+    """
+    Parameters
+    ----------
+    filepath: str
+    """
     tfile = ROOT.TFile(filepath, 'open')
     if tfile.IsOpen():
         print(filepath + ' is opened successfully!')
@@ -27,6 +32,12 @@ def open_tfile(filepath):
 
 
 def save_as(canvas, file_name):
+    """
+    Parameters
+    ----------
+    canvas: ROOT.TCanvas
+    file_name: str
+    """
     canvas.SaveAs(file_name + '.pdf')
     canvas.SaveAs(file_name + '.png')
     canvas.SaveAs(file_name + '.eps')
@@ -352,17 +363,18 @@ def get_region(tree, idv):
 
 
 def draw_pads(tfile, div_x, div_y, histo_names, file_name):
-    canvas = ROOT.TCanvas('c', 'c', 1000, 800)
+    canvas = ROOT.TCanvas('c', 'c', 2400, 800)
     canvas.Divide(div_x, div_y)
     h = []
     for ii, name in enumerate(histo_names):
         canvas.cd(ii+1).SetLogz()
         canvas.SetLogz()
         h.append(tfile.Get(name))
-        h[ii].GetYaxis().SetRangeUser(0, 40)
+        #h[ii].GetYaxis().SetRangeUser(0, 40)
         if 'dRDVmass' in h[ii].GetName():
             h[ii].GetXaxis().SetRangeUser(0, 5)
-        h[ii].Draw('colz')
+        #h[ii].Draw('colz')
+        h[ii].Draw('hist')
     save_as(canvas, '../plots/'+file_name)
 
 
@@ -392,8 +404,87 @@ def rebin(hist, bins_array):
 
 
 def show_progress(entry, entries):
-    if entry % 10000 == 0:
-        print('*** processed {0} out of {1} ({2:2.1f}%)'.format(entry, entries, float(entry)/entries*100))
+    """
+    Parameters
+    ----------
+    entry: int
+        current event number
+    entries: int
+        total number of events
+    """
+    message="\033[1;34mINFO\033[1;m "
+    percent=int(float(entry)/entries*100)+1
+    if entry == 0:
+        print(message+" Number of entries = "+str(int(entries))+"\033[0m")
+    if not entry % 100:
+        sys.stdout.write("\r"+message+" [ "+\
+                "\b"+("="*(percent)+">").ljust(101)+\
+                "][ \b"+str(percent).rjust(3)+\
+                "%]\033[0m")
+        sys.stdout.flush()
+
+
+def pass_event_cut(tree, cut_level):
+    """
+    Parameters
+    ----------
+    tree: ROOT.TTree
+    cut_level: int
+
+    event cut flow
+    [1: Trigger, 2: Filter, 3: GRL, 4: Cleaning,
+     5: PV, 6: NCB Veto, 7: MET, 8: DV Selection]
+    """
+    event_cuts = [tree.PassMetTrigger, tree.PassMetFilter, tree.PassGRL, tree.PassEventCleaning,
+                  tree.PassPVCuts, tree.PassNCBCuts, tree.PassMETCut, tree.PassDVSelections]
+    passed_or_not = True
+    for cut in event_cuts[:cut_level]:
+        passed_or_not &= cut
+    return passed_or_not
+
+
+def pass_dv_cut(tree, cut_level, idv):
+    """
+    Parameters
+    ----------
+    tree: ROOT.TTree
+    cut_level: int
+    idv: int
+    """
+    DV_cuts = [tree.DV_passFidCuts[idv], tree.DV_passChisqCut[idv], tree.DV_passDistCut[idv],
+               tree.DV_passMatVeto2p1[idv], tree.DV_passDisabledModuleVeto[idv],
+               tree.DV_passNtrkCut[idv], tree.DV_passMassCut[idv]]
+    passed_or_not = True
+    for cut in DV_cuts[:cut_level]:
+        passed_or_not &= cut
+    return passed_or_not
+
+
+def basic_event_selection(tree):
+    """
+    Parameters
+    ----------
+    tree: ROOT.TTree
+    """
+
+    return tree.PassGRL and tree.PassEventCleaning and tree.PassPVCuts and tree.PassNCBCuts
+
+
+def basic_dv_selection(tree, idv, doMatVeto=True):
+    """
+    Parameters
+    ----------
+    tree: ROOT.TTree
+    idv: int
+        index of DV
+    doMatVeto: bool
+    """
+    if doMatVeto:
+        return (tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] \
+                and tree.DV_passMatVeto2p1[idv] and tree.DV_passDisabledModuleVeto[idv])
+    else:
+        return (tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] \
+                and tree.DV_passDisabledModuleVeto[idv])
 
 
 if __name__ == '__main__':
@@ -488,17 +579,20 @@ if __name__ == '__main__':
         #parameters = {'file_name': key_list[3], 'legend1': legend1, 'legend2': legend2}
         #draw_distributions_and_ratio(h_group[3], h_central[3], parameters)
 
-    tfile = open_tfile('/Users/kmotohas/work/DisplacedVertices/Run2/MassTemplates_systTree_ALL_v13.root')
-    #regions = [0, 2, 4, 6, 8, 10, 11]
-    models = ['Cross_Angle', 'Cross_DeltaR', 'CrossDeltaPhiAngle', 'CrossDeltaPhiDeltaR', 'CrossDeltaPhiDeltaR_th10',
-              'CrossDeltaAngle', 'CrossDeltaDeltaR', ]
-    models.append('data')
-    h = [ROOT.TH1F() for _ in models]
-    for ii, model in enumerate(models):
-        tfile.GetObject('BkgEst_{}_3Trk_Region0'.format(model), h[ii])
-    legends = [model for model in models]
-    parameters = {'plot_name': '3Trk_Region0_models', 'label': 'data16_13TeV', 'x_max': 50}
-    overlay_histograms(h, legends, parameters)
+    tfile = open_tfile('~/data/mc15_13TeV/DVPlusMETSys/plots_maker_systTree_mc15_13TeV.402074.PythiaRhad_AUET2BCTEQ6L1_gen_gluino_p1_1200_qq_100_1ns.merge.DAOD_SUSY15.e4620_s2770_s2183_r8788_p2877.root')
+    histo_names = ['cut_flow_event', 'cut_flow_dv']
+    draw_pads(tfile, div_x=2, div_y=1, histo_names=histo_names, file_name='cut_flow_402074')
+    #tfile = open_tfile('/Users/kmotohas/work/DisplacedVertices/Run2/MassTemplates_systTree_ALL_v13.root')
+    ##regions = [0, 2, 4, 6, 8, 10, 11]
+    #models = ['Cross_Angle', 'Cross_DeltaR', 'CrossDeltaPhiAngle', 'CrossDeltaPhiDeltaR', 'CrossDeltaPhiDeltaR_th10',
+    #          'CrossDeltaAngle', 'CrossDeltaDeltaR', ]
+    #models.append('data')
+    #h = [ROOT.TH1F() for _ in models]
+    #for ii, model in enumerate(models):
+    #    tfile.GetObject('BkgEst_{}_3Trk_Region0'.format(model), h[ii])
+    #legends = [model for model in models]
+    #parameters = {'plot_name': '3Trk_Region0_models', 'label': 'data16_13TeV', 'x_max': 50}
+    #overlay_histograms(h, legends, parameters)
     #h = [ROOT.TH1F() for _ in regions]
     #for ii, region in enumerate(regions):
     #    tfile.GetObject('BkgEst_data_2Trk_Region{}'.format(region), h[ii])

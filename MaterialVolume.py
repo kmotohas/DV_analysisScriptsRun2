@@ -4,22 +4,22 @@ import BasicConfig
 #BasicConfig = BasicConfig.BasicConfig()
 from datetime import date
 
-try:
-    import ROOT
-    import AtlasStyle
-except ImportError:
-    # on my laptop
-
-    sys.path.append('/usr/local/root/latest/lib')
-    sys.path.append(BasicConfig.workdir + 'Macro/')
-    import ROOT
-    import AtlasStyle
+#try:
+import ROOT
+import AtlasStyle
+#except ImportError:
+#    # on my laptop
+#
+#    sys.path.append('/usr/local/root/latest/lib')
+#    sys.path.append(BasicConfig.workdir + 'Macro/')
+#    import ROOT
+#    import AtlasStyle
 
 class MaterialVolume:
     def __init__(self):
         self.module_name = 'MV'
         self.tf = ROOT.TFile(BasicConfig.rootcoredir
-                             + "DVAnalyses/data/materialMap3D_Run2_v2.root", "open")
+                             + "DVAnalyses/data/materialMap3D_Run2_v2.1.1.root", "open")
         self.matMap = ROOT.TH3D()
         self.tf.GetObject("map", self.matMap)
         self.nr = self.matMap.GetNbinsX()
@@ -45,29 +45,29 @@ class MaterialVolume:
             return False
 
     def getRegion(self, r, nonMaterial):
-        if r < self.region_list[0] and nonMaterial:
+        if   r < self.region_list[0]:
             return 0
-        elif r < self.region_list[1] and not nonMaterial:
+        elif r < self.region_list[1]:
             return 1
-        elif r < self.region_list[2] and nonMaterial:
+        elif r < self.region_list[2]:
             return 2
-        elif r < self.region_list[3] and not nonMaterial:
+        elif r < self.region_list[3]:
             return 3
-        elif r < self.region_list[4] and nonMaterial:
+        elif r < self.region_list[4]:
             return 4
-        elif r < self.region_list[5] and not nonMaterial:
+        elif r < self.region_list[5]:
             return 5
-        elif r < self.region_list[6] and nonMaterial:
+        elif r < self.region_list[6]:
             return 6
-        elif r < self.region_list[7] and not nonMaterial:
+        elif r < self.region_list[7]:
             return 7
-        elif r < self.region_list[8] and nonMaterial:
+        elif r < self.region_list[8]:
             return 8
-        elif r < self.region_list[9] and not nonMaterial:
+        elif r < self.region_list[9]:
             return 9
-        elif r < self.region_list[10] and nonMaterial:
+        elif r < self.region_list[10]:
             return 10
-        elif r < self.region_list[11] and nonMaterial:
+        elif r < self.region_list[11]:
             return 11
         else:
             return -1
@@ -110,6 +110,7 @@ class MaterialVolume:
         canvas.cd()
         matRegion = ROOT.TH2F("matRegion", ";Z [mm];R [mm]",
                          self.nz, -300, 300, self.nr, 0, 300)
+        gStyle.SetPalette(42)
         matRegion.SetContour(12)
         for ir in range(1,self.nr+1):
             r = (self.matMap.GetXaxis().GetBinLowEdge(ir)
@@ -125,8 +126,13 @@ class MaterialVolume:
         matRegion.Draw("colz")
         canvas.SaveAs(BasicConfig.plotdir + self.module_name
                       + "_materialRegion_{}.png".format(date.today()))
+        canvas.SaveAs(BasicConfig.plotdir + self.module_name
+                      + "_materialRegion_{}.pdf".format(date.today()))
 
     def estimateHadronicInteractions(self, tfile, ntrk=3):
+        """
+        obsolete
+        """
         print '*** start MaterialVolume.estimateHadronicInteractions'
         densityAir = 1.3e-3 # [g/cm3]
         densitySilicon = 2.3
@@ -156,10 +162,11 @@ class MaterialVolume:
 if __name__ == "__main__":
     matVol = MaterialVolume()
     # config
-    doCalcMV = False
+    #doCalcMV = False
+    doCalcMV = True
     doShowMR = False
-    doEstiHI = True
-    year = 2015
+    doEstiHI = False
+    year = 2016
     #
     if doCalcMV:
         matVol.calculateMaterialVolume()

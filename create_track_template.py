@@ -1,22 +1,26 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 from ROOT import *
 import array
 import argparse
 
+import utils
 
-def basic_event_selection(tree):
-    # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
-    #  5: PV, 6: MET, 7: DV Selection]
-    return tree.PassCut3 and tree.PassCut4 and tree.PassCut5
+#def basic_event_selection(tree):
+#    # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
+#    #  5: PV, 6: MET, 7: DV Selection]
+#    return tree.PassCut3 and tree.PassCut4 and tree.PassCut5
+#
+#
+#def basic_dv_selection(tree, idv):
+#    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv]
+#    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto[idv]
+#    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto2016[idv]
+#    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passDisabledModuleVeto[idv] and tree.DV_passMatVeto2p1[idv]
 
 
-def basic_dv_selection(tree, idv):
-    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv]
-    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto[idv]
-
-
-if __name__ == '__main__':
+#if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--inputFiles', type=str, help='comma separated input files')
     parser.add_argument('-o', '--outputFile', type=str, help='output file name')
@@ -64,11 +68,12 @@ if __name__ == '__main__':
     chain.Add(args.inputFiles)
     # create some random numbers, fill them into the fill varibles and call Fill()
     entries = chain.GetEntries()
-    print('* Number of entries = {}'.format(entries))
+    #print('* Number of entries = {}'.format(entries))
     try:
         for entry in range(entries):
-            if not entry % 100000:
-                print('*** processed {0} out of {1} ({2}%)'.format(entry, entries, round(float(entry)/entries*100., 1)))
+            #if not entry % 100000:
+            #    print('*** processed {0} out of {1} ({2}%)'.format(entry, entries, round(float(entry)/entries*100., 1)))
+            utils.show_progress(entry, entries)
             #if entry == 100000:
             #    break
             # get the next tree in the chain and verify
@@ -81,11 +86,11 @@ if __name__ == '__main__':
                 continue
             if chain.EventNumber == 752668466:
                 continue
-            if not basic_event_selection(chain):
+            if not utils.basic_event_selection(chain):
                 continue
             pos_PV = TVector3(chain.PV_x, chain.PV_y, chain.PV_z)
             for idv in range(len(chain.DV_x)):
-                if not basic_dv_selection(chain, idv):
+                if not utils.basic_dv_selection(chain, idv):
                     continue
                 region[0] = chain.DV_Region[idv]
                 pos_DV = TVector3(chain.DV_x[idv], chain.DV_y[idv], chain.DV_z[idv])
@@ -95,7 +100,9 @@ if __name__ == '__main__':
                 dv_phi[0] = pos_DV.Phi()
                 dv_eta[0] = pos_DV.Eta()
                 #if chain.DV_nTracks[idv] < 3 or (chain.DV_Region[idv] in [-1, 1, 3, 5, 7, 9]):
-                if chain.DV_nTracks[idv] < 3 or chain.DV_Region[idv] < 0 or chain.DV_m[idv] < 3:
+                #if chain.DV_nTracks[idv] < 3 or chain.DV_Region[idv] < 0 or chain.DV_m[idv] < 3:
+                if chain.DV_Region[idv] < 0 or chain.DV_m[idv] < 2:
+                #if chain.DV_nTracks[idv] < 3 or chain.DV_Region[idv] < 0:
                 #if chain.DV_Region[idv] in [-1, 1, 3, 5, 7, 9]:
                     continue
                 dv_nTracks[0] = chain.DV_nTracks[idv]
@@ -116,3 +123,7 @@ if __name__ == '__main__':
     # write the tree into the output file and close the file
     f.Write()
     f.Close()
+
+
+if __name__ == '__main__':
+    main()

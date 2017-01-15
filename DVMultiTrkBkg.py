@@ -3,6 +3,7 @@
 from ROOT import *
 
 import argparse
+import utils
 
 #m_angleCut = 0.5
 m_massPion = 139.57*0.001
@@ -18,7 +19,7 @@ m_DVPV = TLorentzVector()
 
 m_nEvents = TH1F()
 m_nEvents_MET = TH1F()
-m_BkgEst_data_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
+m_BkgEst_data_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(8)]
 m_BkgEst_data_loMET_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_data_hiMET_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
 m_BkgEst_data_NoCross_iTrk_Region = [[TH1F() for region in range(12)] for itrk in range(7)]
@@ -125,6 +126,8 @@ def book_histograms():
         for region in range(12):
             labels = ';Invariant Mass [GeV]; Number of Vertices'
             m_BkgEst_data_iTrk_Region[itrk][region] = TH1F('BkgEst_data_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
+            if itrk == 6:
+                m_BkgEst_data_iTrk_Region[7][region] = TH1F('BkgEst_data_7Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
             m_BkgEst_data_loMET_iTrk_Region[itrk][region] = TH1F('BkgEst_data_loMET_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
             m_BkgEst_data_hiMET_iTrk_Region[itrk][region] = TH1F('BkgEst_data_hiMET_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
             m_BkgEst_data_NoCross_iTrk_Region[itrk][region] = TH1F('BkgEst_data_NoCross_{0}Trk_Region{1}'.format(itrk, region), labels, nbins, 0, x_max)
@@ -182,14 +185,39 @@ def book_histograms():
                                                                              angle_label, 150, -3.14, 3.14, 150, -3.14, 3.14)
 
 
-def basic_event_selection(tree):
-    # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
-    #  5: PV, 6: MET, 7: DV Selection]
-    return tree.PassCut3 and tree.PassCut4 and tree.PassCut5
+def get_index_of_leading_jet(tree):
+    idx_leading = -1
+    pt_leading = -1000
+    for idx, jet_pt in enumerate(tree.Jet_pT):
+        if jet_pt > pt_leading:
+            pt_leading = jet_pt
+            idx_leading = idx
+    return idx_leading
 
 
-def basic_dv_selection(tree, idv):
-    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto[idv]
+#def PassNCBVeto(tree):
+#    #idx = get_index_of_leading_jet(tree)
+#    #if idx < 0:
+#    #    return True
+#    #else:
+#    #    return (tree.Jet_EMFrac[idx] < 0.96 and tree.Jet_FracSamplingMax < 0.8)
+#    if tree.Jet_n > 0:
+#        return (tree.Jet_EMFrac[0] < 0.96 and tree.Jet_FracSamplingMax[0] < 0.8)
+#    else:
+#        return True
+#
+#
+#def basic_event_selection(tree):
+#    # [1: Trigger, 2: Filter, 3: Cleaning, 4: GRL,
+#    #  5: PV, 6: MET, 7: DV Selection]
+#    #return tree.PassCut3 and tree.PassCut4 and tree.PassCut5
+#    return tree.PassCut3 and tree.PassCut4 and tree.PassCut5 and PassNCBVeto(tree)
+#
+#
+#def basic_dv_selection(tree, idv):
+#    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto[idv]
+#    #return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passMatVeto2016[idv]
+#    return tree.DV_passFidCuts[idv] and tree.DV_passChisqCut[idv] and tree.DV_passDistCut[idv] and tree.DV_passDisabledModuleVeto[idv] and tree.DV_passMatVeto2p1[idv]
 
 
 def dvInfo(tree, idv):
@@ -251,26 +279,32 @@ def getMaxTrkAngle():
 def dvBkgEst(trkTemplate, nTrkTemplates, MET):
     global irandom
 
-    m_angleCut = 0.5
+    m_angleCut = 1.0
     # data
-    m_BkgEst_data_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
-    if MET < m_MET_min:
-        m_BkgEst_data_loMET_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+    DVnTrk = m_DVnTrk
+    if m_DVnTrk < 7:
+        m_BkgEst_data_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
     else:
-        m_BkgEst_data_hiMET_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+        m_BkgEst_data_iTrk_Region[7][m_Region].Fill(m_tlvDV.M())
+    if m_DVnTrk > 6:
+        return
+    if MET < m_MET_min:
+        m_BkgEst_data_loMET_iTrk_Region[DVnTrk][m_Region].Fill(m_tlvDV.M())
+    else:
+        m_BkgEst_data_hiMET_iTrk_Region[DVnTrk][m_Region].Fill(m_tlvDV.M())
     max_average_opening_angle, max_angle_DVPV, max_deltaR_DVPV, max_deltaEta_DVPV = getMaxTrkAngle()
     if (max_average_opening_angle < m_angleCut):
-        m_BkgEst_data_NoCross_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+        m_BkgEst_data_NoCross_iTrk_Region[DVnTrk][m_Region].Fill(m_tlvDV.M())
     if (max_angle_DVPV < m_angleCut):
-        m_BkgEst_data_NoCross_maxAngle_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+        m_BkgEst_data_NoCross_maxAngle_iTrk_Region[DVnTrk][m_Region].Fill(m_tlvDV.M())
     if (max_deltaR_DVPV < m_angleCut):
-        m_BkgEst_data_NoCross_maxDeltaR_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
+        m_BkgEst_data_NoCross_maxDeltaR_iTrk_Region[DVnTrk][m_Region].Fill(m_tlvDV.M())
     if (max_deltaEta_DVPV < m_angleCut):
-        m_BkgEst_data_NoCross_maxDeltaEta_iTrk_Region[m_DVnTrk][m_Region].Fill(m_tlvDV.M())
-    m_AvgAngleDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_average_opening_angle, m_tlvDV.M())
-    m_maxAngleDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_angle_DVPV, m_tlvDV.M())
-    m_dRDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_deltaR_DVPV, m_tlvDV.M())
-    m_dEtaDVmass_iTrk_Region[m_DVnTrk][m_Region].Fill(max_deltaEta_DVPV, m_tlvDV.M())
+        m_BkgEst_data_NoCross_maxDeltaEta_iTrk_Region[DVnTrk][m_Region].Fill(m_tlvDV.M())
+    m_AvgAngleDVmass_iTrk_Region[DVnTrk][m_Region].Fill(max_average_opening_angle, m_tlvDV.M())
+    m_maxAngleDVmass_iTrk_Region[DVnTrk][m_Region].Fill(max_angle_DVPV, m_tlvDV.M())
+    m_dRDVmass_iTrk_Region[DVnTrk][m_Region].Fill(max_deltaR_DVPV, m_tlvDV.M())
+    m_dEtaDVmass_iTrk_Region[DVnTrk][m_Region].Fill(max_deltaEta_DVPV, m_tlvDV.M())
 
     #if m_DVnTrk >= 6 or m_Region in [1, 3, 5, 7, 9]:
     if m_DVnTrk >= 6 or m_Region < 0:
@@ -517,7 +551,12 @@ def main():
 
     #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_v3.root', 'open')
     #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_NonVetoOnly_v3.root', 'open')
-    f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_massCut_v06-00-00.root', 'open')
+    # 3 GeV mass cut
+    #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_massCut_v06-00-00.root', 'open')
+    #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_v06-00-00.root', 'open')
+    #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_v06-00-01.root', 'open')
+    #f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_massCut_v06-00-01.root', 'open')
+    f = TFile('~/data/data16_13TeV/DVPlusMETSys/DVtrkTemplate_no2trk_massCut_v06-00-03.root', 'open')
     trkTemplate = f.Get('DVtrkTemplate')
     nTrkTemplates = trkTemplate.GetEntries()
     
@@ -528,8 +567,9 @@ def main():
 
     try:
         for entry in range(entries):
-            if not entry % 10000:
-                print('*** processed {0} out of {1} ({2}%)'.format(entry, entries, round(float(entry)/entries*100., 1)))
+            #if not entry % 10000:
+            #    print('*** processed {0} out of {1} ({2}%)'.format(entry, entries, round(float(entry)/entries*100., 1)))
+            utils.show_progress(entry, entries)
                 #irandom = int(gRandom.Uniform()*nTrkTemplates)
                 #print(irandom)
             #if entry == 1000:
@@ -549,10 +589,11 @@ def main():
             #if chain.MET > 200:
             #    continue
             m_nEvents_MET.Fill(0.5, event_weight)
-            if basic_event_selection(chain):
+            if utils.basic_event_selection(chain):
                 m_posPV.SetXYZ(chain.PV_x, chain.PV_y, chain.PV_z)
                 for idv in range(len(chain.DV_x)):
-                    if basic_dv_selection(chain, idv) and chain.DV_nTracks[idv] < 7 and chain.DV_Region[idv] >= 0:
+                    #if basic_dv_selection(chain, idv) and chain.DV_nTracks[idv] < 7 and chain.DV_Region[idv] >= 0:
+                    if utils.basic_dv_selection(chain, idv) and chain.DV_Region[idv] >= 0:
                         dvInfo(chain, idv)
                         #print('orig'+str(m_tlvDV.M()))
                         m_DVPV.SetVect(m_posDV - m_posPV)
@@ -568,6 +609,8 @@ def main():
     for itrk in range(2, 7):
         for region in range(12):
             m_BkgEst_data_iTrk_Region[itrk][region].Write()
+            if itrk == 6:
+                m_BkgEst_data_iTrk_Region[7][region].Write()
             m_BkgEst_data_loMET_iTrk_Region[itrk][region].Write()
             m_BkgEst_data_hiMET_iTrk_Region[itrk][region].Write()
             m_BkgEst_data_NoCross_iTrk_Region[itrk][region].Write()
